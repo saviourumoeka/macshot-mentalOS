@@ -31,6 +31,7 @@ protocol OverlayWindowControllerDelegate: AnyObject {
     func overlayDidFinishRemoteResize(_ controller: OverlayWindowController, globalRect: NSRect)
     func overlayCrossScreenImage(_ controller: OverlayWindowController) -> NSImage?
     func overlayDidChangeWindowSnapState(_ controller: OverlayWindowController)
+    func overlayDidRequestNextScreen(_ controller: OverlayWindowController)
 }
 
 /// Manages one fullscreen overlay per screen.
@@ -554,6 +555,10 @@ extension OverlayWindowController: OverlayViewDelegate {
     }
 
     func overlayViewDidRequestAddCapture() {}  // editor-only
+
+    func overlayViewDidRequestNextScreen() {
+        overlayDelegate?.overlayDidRequestNextScreen(self)
+    }
 
     func overlayViewRemoteSelectionDidChange(_ rect: NSRect) {
         // Convert local rect to global screen coords and forward to delegate

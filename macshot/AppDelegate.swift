@@ -2196,6 +2196,18 @@ extension AppDelegate: OverlayWindowControllerDelegate {
         }
     }
 
+    func overlayDidRequestNextScreen(_ controller: OverlayWindowController) {
+        guard overlayControllers.count > 1,
+              let idx = overlayControllers.firstIndex(where: { $0 === controller }) else { return }
+        let next = overlayControllers[(idx + 1) % overlayControllers.count]
+        next.makeKey()
+        let f = next.screen.frame
+        let primaryH = NSScreen.screens.first?.frame.height ?? f.height
+        let cgPoint = CGPoint(x: f.midX, y: primaryH - f.midY)
+        CGWarpMouseCursorPosition(cgPoint)
+        CGAssociateMouseAndMouseCursorPosition(1)
+    }
+
     private func handleScrollCaptureCompleted(finalImage: NSImage?) {
         scrollCapturePreviewPanel?.close()
         scrollCapturePreviewPanel = nil

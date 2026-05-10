@@ -536,6 +536,7 @@ extension DetachedEditorWindowController: OverlayViewDelegate {
     func overlayViewDidRequestAccessibilityPermission() {}
     func overlayViewDidRequestInputMonitoringPermission() {}
     func overlayViewDidChangeWindowSnapState() {}  // Not applicable in editor mode
+    func overlayViewDidRequestNextScreen() {}  // Capture-overlay only
 
     func overlayViewDidRequestAddCapture() {
         guard let editorWindow = window else { return }
@@ -711,5 +712,17 @@ private class AddCaptureOverlayHandler: NSObject, OverlayWindowControllerDelegat
         for other in overlayControllers where other !== controller {
             other.triggerRedraw()
         }
+    }
+
+    func overlayDidRequestNextScreen(_ controller: OverlayWindowController) {
+        guard overlayControllers.count > 1,
+              let idx = overlayControllers.firstIndex(where: { $0 === controller }) else { return }
+        let next = overlayControllers[(idx + 1) % overlayControllers.count]
+        next.makeKey()
+        let f = next.screen.frame
+        let primaryH = NSScreen.screens.first?.frame.height ?? f.height
+        let cgPoint = CGPoint(x: f.midX, y: primaryH - f.midY)
+        CGWarpMouseCursorPosition(cgPoint)
+        CGAssociateMouseAndMouseCursorPosition(1)
     }
 }

@@ -31,6 +31,7 @@ protocol OverlayViewDelegate: AnyObject {
     func overlayViewDidChangeWindowSnapState()
     func overlayViewRemoteSelectionDidFinish(_ rect: NSRect)
     func overlayViewDidRequestAddCapture()
+    func overlayViewDidRequestNextScreen()
 }
 
 /// An entry in the undo/redo history.
@@ -7125,6 +7126,10 @@ class OverlayView: NSView {
                 needsDisplay = true
                 // Notify other overlays to redraw (for multi-monitor setups)
                 overlayDelegate?.overlayViewDidChangeWindowSnapState()
+            }
+        case 50:  // ` (grave/backtick) — cycle active overlay across screens
+            if state == .idle {
+                overlayDelegate?.overlayViewDidRequestNextScreen()
             }
         case 3:  // F — full screen capture (only in idle state with snap on)
             if state == .idle && windowSnapEnabled {
