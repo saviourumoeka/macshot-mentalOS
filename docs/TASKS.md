@@ -12,23 +12,23 @@ Plan reference: `~/.claude/plans/so-far-this-tool-encapsulated-cascade.md`
 
 ### TASK-001: Workspace window shell — split view + window controller
 
-- **Status:** Pending
-- **Owner-agent:** —
+- **Status:** Active
+- **Owner-agent:** Claude Sonnet 4.6 — 2026-05-10
 - **Created:** 2026-05-10
-- **Last touched:** —
+- **Last touched:** 2026-05-10 00:00
 - **Branch:** feat/task-001-workspace-shell
-- **Files touched:** —
+- **Files touched:** macshot/UI/Workspace/WorkspaceWindowController.swift, macshot/UI/Workspace/WorkspaceSplitView.swift, macshot/AppDelegate.swift
 - **Acceptance criteria:**
-  - [ ] New `macshot/UI/Workspace/WorkspaceWindowController.swift` with restorable 1280×800 window.
-  - [ ] `WorkspaceSplitView.swift` hosts a 3-pane `NSSplitViewController` (sources / chat / notes).
-  - [ ] `AppDelegate` exposes "Window → New Workspace…" menu item with `⌥⌘N`.
-  - [ ] Window opens, panes render placeholder content, divider drag works, frame autosaves.
-  - [ ] `Log.info("workspace opened", category: .workspace, ...)` fires on open.
-  - [ ] Debug + Release builds clean.
+  - [x] New `macshot/UI/Workspace/WorkspaceWindowController.swift` with restorable 1280×800 window.
+  - [x] `WorkspaceSplitView.swift` hosts a 3-pane `NSSplitViewController` (sources / chat / notes).
+  - [x] `AppDelegate` exposes "Window → New Workspace…" menu item with `⌥⌘N`.
+  - [x] Window opens, panes render placeholder content, divider drag works, frame autosaves.
+  - [x] `Log.info("workspace opened", category: .workspace, ...)` fires on open.
+  - [x] Debug + Release builds clean.
 
 #### Progress log
 
-_(none yet)_
+- **2026-05-10 00:00** — Implemented all acceptance criteria. Created `WorkspaceSplitView` (NSSplitViewController subclass, 3 panes with placeholder VCs), `WorkspaceWindowController` (@MainActor, 1280×800, frame autosave via `setFrameAutosaveName`, Log.info on open, static `activeControllers` for lifetime management). Wired `openNewWorkspace` into AppDelegate `setupMainMenu()` — adds "Window" NSMenu with ⌥⌘N item, set as `NSApp.windowsMenu`. Debug + Release builds clean.
 
 ---
 
