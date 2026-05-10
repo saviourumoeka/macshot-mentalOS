@@ -220,24 +220,87 @@ _(none yet)_
 
 ## Blocked
 
-### TASK-011: MentalOS web app integration (daily review surface)
+### TASK-011: Supabase sync — captures schema + storage bucket (web side)
 
-- **Status:** Blocked
+- **Status:** Blocked-on-Phase-2
 - **Owner-agent:** —
 - **Created:** 2026-05-10
-- **Last touched:** —
-- **Branch:** —
+- **Last touched:** 2026-05-10
+- **Repo:** `git@github.com:saviourumoeka/MentalOS.git` (cloned at `experiments/MentalOS-web/`)
+- **Branch:** feat/task-011-captures-schema (off `dev`, PR back to `dev`)
 - **Files touched:** —
-- **Blocked on:** User has not yet shared the path/URL of the MentalOS
-  web repo. Once provided, an agent should explore it and append a
-  detailed sub-plan to this task before moving it to Active.
+- **Blocked on:** Should land after Phase 2 RAG so the schema reflects
+  finalised local data shape (chunks/embeddings stay local; only
+  metadata + OCR + thumb sync to Supabase).
 - **Acceptance criteria:**
-  - [ ] To be defined after web-repo exploration.
+  - [ ] New migration `supabase/migrations/<ts>_captures.sql` creates `captures` table:
+        `id uuid pk, user_id uuid fk auth.users, source_uuid text` (the macshot capture UUID for idempotency),
+        `app text, bundle_id text, window_title text, browser_url text,`
+        `ocr_text text, summary text, tags text[], note text,`
+        `thumb_path text` (Supabase Storage object key in `captures-thumbs` bucket),
+        `captured_at timestamptz, created_at timestamptz default now(),`
+        `unique(user_id, source_uuid)`.
+  - [ ] RLS enabled with `auth.uid() = user_id` policies (select/insert/update/delete own rows).
+  - [ ] Storage bucket `captures-thumbs` created with policy: authenticated users can read/write objects under `<user_id>/...` only.
+  - [ ] Indexes: `(user_id, captured_at desc)`, GIN on `to_tsvector('english', ocr_text)` for FTS.
+  - [ ] Migration applies cleanly against fresh + existing database.
+  - [ ] Jest tests around any new server actions; `npm run build` passes.
+  - [ ] PR opened against `dev` per the web repo's `AGENTS.md` workflow.
 
 #### Progress log
 
-- **2026-05-10** — Created from the planning round. Awaiting repo path
-  from the user.
+- **2026-05-10** — Created from planning round. Web repo explored:
+  Next.js 16 + React 19 + Supabase (cloud) + Ollama, single-user,
+  Google OAuth, RLS-enforced. No captures table exists. Branch
+  workflow: feature off `dev`, PR back to `dev`, never commit
+  directly. AGENTS.md and CLAUDE.md require Jest tests + green
+  `npm run build` before PR.
+
+---
+
+### TASK-014: Supabase sync — macOS uploader (macshot side)
+
+- **Status:** Blocked-on-Phase-2 + TASK-011
+- **Owner-agent:** —
+- **Created:** 2026-05-10
+- **Last touched:** —
+- **Branch:** feat/task-014-supabase-sync
+- **Files touched:** —
+- **Acceptance criteria:**
+  - [ ] New `macshot/MentalOS/Sync/SupabaseClient.swift` — minimal REST + Storage wrapper, no SDK dependency.
+  - [ ] OAuth via system browser: open `https://<project>.supabase.co/auth/v1/authorize?provider=google&redirect_to=macshot://auth-callback`, register `macshot://` URL scheme, exchange code → token, store refresh token in Keychain.
+  - [ ] `CaptureSyncer` background actor: watches new entries written by `ContextCapture`, uploads `_thumb.png` to `captures-thumbs/<user_id>/<source_uuid>.png`, then `upsert` row into `captures` (idempotent on `(user_id, source_uuid)`).
+  - [ ] Retry-with-backoff on failure; failures logged via `Log.error(category: .ai)` (or new `.sync` category — add to Log.Category).
+  - [ ] Settings AI tab gains "Cloud sync" section: sign in/out button, "Sync new captures to MentalOS web" toggle, last-synced timestamp.
+  - [ ] Off by default — opt-in.
+
+#### Progress log
+
+- **2026-05-10** — Created. Will pick up after TASK-011 ships the
+  schema and storage policies on the web side.
+
+---
+
+### TASK-015: Web — Captures view in dashboard
+
+- **Status:** Blocked-on-TASK-011
+- **Owner-agent:** —
+- **Created:** 2026-05-10
+- **Last touched:** —
+- **Repo:** MentalOS-web
+- **Branch:** feat/task-015-captures-view (off `dev`)
+- **Files touched:** —
+- **Acceptance criteria:**
+  - [ ] New server action `app/actions/captures.ts`: `listCaptures({ limit, before })`, `searchCaptures({ query })`.
+  - [ ] New `RecentCapturesCard` component on the dashboard between Recent Activity entries and todos.
+  - [ ] New `/dashboard/captures` page: paginated grid of thumbnails + metadata, FTS search box hitting the `ocr_text` index.
+  - [ ] Click on a capture → modal with OCR text, app/window context, "Open in macshot" deep link (`macshot://open/<source_uuid>` — handled by the macOS app).
+  - [ ] Captures included in the weekly review's data feed so AI synthesis can cite them.
+  - [ ] Jest tests; `npm run build` passes; PR to `dev`.
+
+#### Progress log
+
+- **2026-05-10** — Created.
 
 ---
 
