@@ -119,8 +119,9 @@ class DetachedEditorWindowController: NSObject, NSWindowDelegate {
         // scrollbar and content don't go behind the top bar. Bottom/right toolbars
         // are handled via content insets since their sizes are dynamic.
         let topBarHeight: CGFloat = 32
-        let showNotesSidebar = (historyEntryID != nil)
-        let sidebarWidth: CGFloat = showNotesSidebar ? NotesSidebarView.preferredWidth : 0
+        // Notes sidebar is always present so users can always find a place to write notes.
+        // For captures not yet in history, we auto-persist below so the pane is immediately usable.
+        let sidebarWidth: CGFloat = NotesSidebarView.preferredWidth
         let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: winW - sidebarWidth, height: winH - topBarHeight))
         // Manual layout via windowDidResize so the sidebar can claim a fixed-width column
         // on the right while the canvas takes the remaining space.
@@ -165,14 +166,11 @@ class DetachedEditorWindowController: NSObject, NSWindowDelegate {
         container.addSubview(topBar)
         self.topBar = topBar
 
-        // Notes sidebar (right column) — only attached when capture is in history.
-        if showNotesSidebar {
-            let sidebar = NotesSidebarView(frame: NSRect(x: winW - sidebarWidth, y: 0, width: sidebarWidth, height: winH - topBarHeight))
-            sidebar.autoresizingMask = []
-            sidebar.configure(entryID: historyEntryID, historyDirectory: ScreenshotHistory.shared.historyDirectory)
-            container.addSubview(sidebar)
-            self.notesSidebar = sidebar
-        }
+        // Notes sidebar (right column) — always present.
+        let sidebar = NotesSidebarView(frame: NSRect(x: winW - sidebarWidth, y: 0, width: sidebarWidth, height: winH - topBarHeight))
+        sidebar.autoresizingMask = []
+        container.addSubview(sidebar)
+        self.notesSidebar = sidebar
 
         // Show "Done" button when editing a history entry
         if historyEntryID != nil {
@@ -235,6 +233,16 @@ class DetachedEditorWindowController: NSObject, NSWindowDelegate {
 
         self.window = win
         self.overlayView = view
+
+        // Auto-persist live captures so the notes sidebar is enabled from the moment
+        // the editor opens. screenshotNeverOutput == true means the capture came from
+        // a live overlay confirm and is not yet in history — we add it now so it
+        // survives close even if the user only writes notes and never explicitly saves.
+        if historyEntryID == nil && screenshotNeverOutput {
+            ensureInHistory(compositedImage: image)
+            screenshotNeverOutput = false
+        }
+        notesSidebar?.configure(entryID: historyEntryID, historyDirectory: ScreenshotHistory.shared.historyDirectory)
     }
 
     // MARK: - NSWindowDelegate
