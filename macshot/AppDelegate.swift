@@ -18,6 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     private var ocrController: OCRResultController?
     private var historyMenu: NSMenu?
     private var historyOverlayController: HistoryOverlayController?
+    private var searchWindowController: SearchWindowController?
     private var isCapturing = false
     private var delayCountdownWindow: NSWindow?
     private var delayTimer: Timer?
@@ -85,6 +86,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
         setupMainMenu()
         setupStatusBar()
+        AIProviderRegistry.shared.summarizationProvider = OllamaSummarizer(model: "gemma4:e4b")
         if UserDefaults.standard.bool(forKey: "hideMenuBarIcon") {
             setMenuBarIconVisible(false)
         }
@@ -417,6 +419,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         HotkeyManager.applyMenuShortcut(for: .historyOverlay, to: historyOverlayItem)
         menu.addItem(historyOverlayItem)
 
+        let searchItem = NSMenuItem(title: L("Search Captures"), action: #selector(showMentalSearch), keyEquivalent: "")
+        searchItem.target = self
+        searchItem.image = NSImage(systemSymbolName: "magnifyingglass", accessibilityDescription: nil)
+        HotkeyManager.applyMenuShortcut(for: .mentalSearch, to: searchItem)
+        menu.addItem(searchItem)
+
         menu.addItem(NSMenuItem.separator())
 
         let openImageItem = NSMenuItem(title: L("Open Image..."), action: #selector(openImageFromMenu), keyEquivalent: "")
@@ -489,6 +497,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
             },
             captureLastArea: { [weak self] in
                 DispatchQueue.main.async { self?.captureLastArea() }
+            },
+            mentalSearch: { [weak self] in
+                DispatchQueue.main.async { self?.showMentalSearch() }
             }
         )
     }
@@ -583,6 +594,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         }
         controller.show()
         historyOverlayController = controller
+    }
+
+    @objc private func showMentalSearch() {
+        if let existing = searchWindowController {
+            // Toggle: second hotkey press dismisses the panel
+            existing.dismiss()
+            return
+        }
+        let controller = SearchWindowController()
+        controller.onDismiss = { [weak self] in
+            self?.searchWindowController = nil
+        }
+        controller.show()
+        searchWindowController = controller
     }
 
     @objc private func captureOCR() {
@@ -1368,6 +1393,9 @@ extension AppDelegate: OverlayWindowControllerDelegate {
     }
 
     func overlayDidConfirm(_ controller: OverlayWindowController, capturedImage: NSImage?, annotationData: CaptureAnnotationData?) {
+        // Capture context before dismissOverlays() clears previousApp via returnFocusIfNeeded()
+        let contextApp = previousApp
+        let contextWindowTitle = capturedWindowTitle
         dismissOverlays()
         if let image = capturedImage {
             ScreenshotHistory.shared.add(
@@ -1376,6 +1404,11 @@ extension AppDelegate: OverlayWindowControllerDelegate {
                 annotations: annotationData?.annotations)
             // The entry just added is at index 0
             let entryID = ScreenshotHistory.shared.entries.first?.id
+            if let id = entryID {
+                ContextCapture.write(id: id, app: contextApp, windowTitle: contextWindowTitle,
+                                     to: ScreenshotHistory.shared.historyDirectory)
+                CaptureOCR.run(id: id, image: image, historyDirectory: ScreenshotHistory.shared.historyDirectory)
+            }
             // Defer thumbnail to next runloop cycle so overlay teardown completes first
             // and the main thread is free for the next capture trigger
             let annData = annotationData
@@ -1456,6 +1489,11 @@ extension AppDelegate: OverlayWindowControllerDelegate {
     func overlayDidRequestPin(_ controller: OverlayWindowController, image: NSImage) {
         ScreenshotHistory.shared.add(image: image)
         let appToRefocus = previousApp
+        if let id = ScreenshotHistory.shared.entries.first?.id {
+            ContextCapture.write(id: id, app: previousApp, windowTitle: capturedWindowTitle,
+                                 to: ScreenshotHistory.shared.historyDirectory)
+            CaptureOCR.run(id: id, image: image, historyDirectory: ScreenshotHistory.shared.historyDirectory)
+        }
         dismissOverlays(refocusPreviousApp: false)
         let pin = PinWindowController(image: image)
         pin.delegate = self
@@ -2262,6 +2300,7 @@ extension AppDelegate: NSMenuDelegate {
         alert.alertStyle = .warning
         if alert.runModal() == .alertFirstButtonReturn {
             ScreenshotHistory.shared.clear()
+            SearchIndex.shared.reset()
         }
     }
 }

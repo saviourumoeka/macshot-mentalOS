@@ -32,6 +32,8 @@ class ScreenshotHistory {
     private let historyDir: URL
     private let indexFile: URL
 
+    var historyDirectory: URL { historyDir }
+
     var maxEntries: Int {
         if UserDefaults.standard.bool(forKey: "historyUnlimited") { return Int.max }
         if let stored = UserDefaults.standard.object(forKey: "historySize") as? Int {
@@ -412,11 +414,15 @@ class ScreenshotHistory {
         let previewURL = historyDir.appendingPathComponent("\(id)_preview.png")
         let rawURL = historyDir.appendingPathComponent("\(id)_raw.png")
         let annURL = historyDir.appendingPathComponent("\(id)_annotations.json")
+        let contextURL = historyDir.appendingPathComponent("\(id)_context.json")
+        let ocrURL = historyDir.appendingPathComponent("\(id)_ocr.json")
         try? FileManager.default.removeItem(at: fileURL)
         try? FileManager.default.removeItem(at: thumbURL)
         try? FileManager.default.removeItem(at: previewURL)
         try? FileManager.default.removeItem(at: rawURL)
         try? FileManager.default.removeItem(at: annURL)
+        try? FileManager.default.removeItem(at: contextURL)
+        try? FileManager.default.removeItem(at: ocrURL)
     }
 
     private func makeThumbnail(image: NSImage, maxWidth: CGFloat) -> NSImage {
