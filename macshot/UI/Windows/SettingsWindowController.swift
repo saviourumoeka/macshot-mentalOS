@@ -1523,7 +1523,24 @@ class SettingsWindowController: NSWindowController, NSToolbarDelegate, NSWindowD
         license.font = NSFont.systemFont(ofSize: 11)
         license.textColor = .tertiaryLabelColor
         stack.addArrangedSubview(license)
-        stack.setCustomSpacing(20, after: license)
+        stack.setCustomSpacing(6, after: license)
+
+        // Made by
+        let madeBy = NSTextField(labelWithString: L("Made by sw33tlie"))
+        madeBy.font = NSFont.systemFont(ofSize: 11)
+        madeBy.textColor = .tertiaryLabelColor
+        stack.addArrangedSubview(madeBy)
+        stack.setCustomSpacing(8, after: madeBy)
+
+        // Repository link — clickable, opens in browser
+        let repoButton = NSButton(title: "github.com/sw33tlie/macshot", target: self, action: #selector(openRepoURL))
+        repoButton.bezelStyle = .inline
+        repoButton.isBordered = false
+        repoButton.contentTintColor = .linkColor
+        repoButton.font = NSFont.systemFont(ofSize: 11)
+        if let cell = repoButton.cell as? NSButtonCell { cell.highlightsBy = [] }
+        stack.addArrangedSubview(repoButton)
+        stack.setCustomSpacing(20, after: repoButton)
 
         // Screen Info (debug) — gathers display & capture metadata, copies to clipboard
         let screenInfoBtn = NSButton(title: L("Copy Screen Info"), target: self, action: #selector(copyScreenInfo))
@@ -1538,6 +1555,12 @@ class SettingsWindowController: NSWindowController, NSToolbarDelegate, NSWindowD
         stack.addArrangedSubview(screenInfoHint)
 
         return container
+    }
+
+    @objc private func openRepoURL() {
+        if let url = URL(string: "https://github.com/sw33tlie/macshot") {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     @objc private func copyScreenInfo() {

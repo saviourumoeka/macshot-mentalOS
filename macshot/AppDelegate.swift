@@ -268,13 +268,42 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
 
     // MARK: - Main Menu (required when no storyboard)
 
+    @objc private func showCustomAboutPanel() {
+        // Standard About panel with author + repo link injected via the credits attributed string.
+        let credits = NSMutableAttributedString()
+        let made = NSAttributedString(
+            string: "Made by sw33tlie\n",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11),
+                .foregroundColor: NSColor.labelColor,
+            ])
+        credits.append(made)
+
+        let linkAttrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 11),
+            .foregroundColor: NSColor.linkColor,
+            .link: URL(string: "https://github.com/sw33tlie/macshot") as Any,
+            .underlineStyle: NSUnderlineStyle.single.rawValue,
+        ]
+        credits.append(NSAttributedString(string: "github.com/sw33tlie/macshot", attributes: linkAttrs))
+
+        let para = NSMutableParagraphStyle()
+        para.alignment = .center
+        credits.addAttribute(.paragraphStyle, value: para, range: NSRange(location: 0, length: credits.length))
+
+        NSApp.orderFrontStandardAboutPanel(options: [
+            NSApplication.AboutPanelOptionKey.credits: credits,
+        ])
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     private func setupMainMenu() {
         let mainMenu = NSMenu()
         let appMenuItem = NSMenuItem()
         mainMenu.addItem(appMenuItem)
 
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "About macshot", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(withTitle: "About macshot", action: #selector(showCustomAboutPanel), keyEquivalent: "")
         appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(withTitle: "Quit macshot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appMenuItem.submenu = appMenu
