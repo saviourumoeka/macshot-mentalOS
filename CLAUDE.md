@@ -2,6 +2,12 @@
 
 Native macOS screenshot & annotation tool inspired by Flameshot. Built with Swift + AppKit. No Qt, no Electron.
 
+> **Agents: read [`AGENTS.md`](AGENTS.md) first.** It is the canonical
+> multi-agent contract — branching rules, build pipeline, task hand-off
+> protocol, doc-maintenance role. This file (`CLAUDE.md`) is the
+> architecture and conventions reference, loaded on demand once
+> `AGENTS.md` has been internalised.
+
 ## Project Setup
 
 - **Language:** Swift 5.0
