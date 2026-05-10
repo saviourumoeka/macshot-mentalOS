@@ -27,7 +27,7 @@ Plan reference: `~/.claude/plans/so-far-this-tool-encapsulated-cascade.md`
 
 #### Progress log
 
-- **2026-05-11 00:00** — Promoted from Pending. Implementing SourceRef enum (Codable, manual encode/decode for associated values), WorkspaceSession struct (Codable, Identifiable, Sendable), WorkspaceStore actor-safe singleton with debounced auto-save (800ms), background I/O queue, all disk errors via Log.*. Build verification pending.
+- **2026-05-11 00:00** — Promoted from Pending. Implemented SourceRef enum (Codable, manual encode/decode for associated values; stable sourceID for VectorStore keying), WorkspaceSession struct (Codable, Identifiable, Sendable; addSource/removeSource helpers), WorkspaceStore singleton (background I/O queue, debounced auto-save at 800ms, all disk errors via Log.*; persists to `<appSupport>/com.sw33tlie.macshot/workspaces/<uuid>.json`). Release build clean — strict concurrency verified. Commit: 795f771. Push to `origin feat/task-002-workspace-session` denied by permission check — run `git push origin feat/task-002-workspace-session` to publish.
 
 ---
 
