@@ -1542,6 +1542,20 @@ class SettingsWindowController: NSWindowController, NSToolbarDelegate, NSWindowD
         stack.addArrangedSubview(repoButton)
         stack.setCustomSpacing(20, after: repoButton)
 
+        // Register with Accessibility — until a feature requests it, macshot won't
+        // appear in System Settings → Privacy & Security → Accessibility. This button
+        // forces the registration so users can grant access proactively.
+        let axBtn = NSButton(title: L("Register with macOS Accessibility"), target: self, action: #selector(registerAccessibility))
+        axBtn.bezelStyle = .rounded
+        axBtn.font = NSFont.systemFont(ofSize: 11)
+        stack.addArrangedSubview(axBtn)
+
+        let axHint = NSTextField(labelWithString: L("Adds macshot to System Settings → Privacy & Security → Accessibility"))
+        axHint.font = NSFont.systemFont(ofSize: 10)
+        axHint.textColor = .tertiaryLabelColor
+        stack.addArrangedSubview(axHint)
+        stack.setCustomSpacing(16, after: axHint)
+
         // Screen Info (debug) — gathers display & capture metadata, copies to clipboard
         let screenInfoBtn = NSButton(title: L("Copy Screen Info"), target: self, action: #selector(copyScreenInfo))
         screenInfoBtn.bezelStyle = .rounded
@@ -1559,6 +1573,29 @@ class SettingsWindowController: NSWindowController, NSToolbarDelegate, NSWindowD
 
     @objc private func openRepoURL() {
         if let url = URL(string: "https://github.com/sw33tlie/macshot") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    @objc private func registerAccessibility() {
+        let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
+        let trusted = AXIsProcessTrustedWithOptions(opts)
+        let alert = NSAlert()
+        if trusted {
+            alert.messageText = L("Accessibility Already Granted")
+            alert.informativeText = L("macshot already has Accessibility access.")
+            alert.alertStyle = .informational
+            alert.addButton(withTitle: L("OK"))
+        } else {
+            alert.messageText = L("Accessibility Registration Triggered")
+            alert.informativeText = L("macshot has been added to System Settings → Privacy & Security → Accessibility. Open it now and toggle macshot on.")
+            alert.alertStyle = .informational
+            alert.addButton(withTitle: L("Open Settings"))
+            alert.addButton(withTitle: L("Later"))
+        }
+        let resp = alert.runModal()
+        if !trusted, resp == .alertFirstButtonReturn,
+           let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
             NSWorkspace.shared.open(url)
         }
     }
