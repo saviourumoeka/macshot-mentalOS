@@ -39,19 +39,28 @@ enum CaptureEnrichmentPipeline {
         var embeddingDimensions: Int?
 
         if let summarizer = registry.summarizationProvider, !text.isEmpty {
-            summary = try? await summarizer.summarize(text)
-            if summary != nil { summaryProviderID = summarizer.providerID }
-        }
-
-        if let embedder = registry.embeddingProvider, !text.isEmpty {
-            embedding = try? await embedder.embed(text)
-            if embedding != nil {
-                embeddingProviderID = embedder.providerID
-                embeddingDimensions = embedder.dimensions
+            do {
+                summary = try await summarizer.summarize(text)
+                summaryProviderID = summarizer.providerID
+            } catch {
+                Log.error("Summarization failed", category: .enrichment, error: error, ["id": id, "provider": summarizer.providerID])
             }
         }
 
-        guard summary != nil || embedding != nil else { return }
+        if let embedder = registry.embeddingProvider, !text.isEmpty {
+            do {
+                embedding = try await embedder.embed(text)
+                embeddingProviderID = embedder.providerID
+                embeddingDimensions = embedder.dimensions
+            } catch {
+                Log.error("Embedding failed", category: .enrichment, error: error, ["id": id, "provider": embedder.providerID])
+            }
+        }
+
+        guard summary != nil || embedding != nil else {
+            Log.debug("Enrichment produced no output", category: .enrichment, ["id": id])
+            return
+        }
 
         let sidecar = AISidecar(
             id: id,
@@ -64,7 +73,12 @@ enum CaptureEnrichmentPipeline {
         )
 
         let url = historyDirectory.appendingPathComponent("\(id)_ai.json")
-        guard let data = try? encoder.encode(sidecar) else { return }
-        try? data.write(to: url, options: .atomic)
+        do {
+            let data = try encoder.encode(sidecar)
+            try data.write(to: url, options: .atomic)
+            Log.info("AI sidecar written", category: .enrichment, ["id": id, "has_summary": summary != nil, "has_embedding": embedding != nil])
+        } catch {
+            Log.error("Failed to write AI sidecar", category: .enrichment, error: error, ["id": id, "path": url.path])
+        }
     }
 }

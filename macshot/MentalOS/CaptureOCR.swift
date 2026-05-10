@@ -24,7 +24,10 @@ enum CaptureOCR {
     ///   - historyDirectory: The directory where sidecar files are written.
     static func run(id: String, image: NSImage, historyDirectory: URL) {
         DispatchQueue.global(qos: .utility).async {
-            guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
+            guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+                Log.error("OCR skipped: NSImage has no CGImage representation", category: .ocr, ["id": id])
+                return
+            }
             let result = extractText(id: id, from: cgImage)
             persist(result: result, historyDirectory: historyDirectory)
         }
@@ -54,16 +57,24 @@ enum CaptureOCR {
         }
 
         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try? handler.perform([request])
+        do {
+            try handler.perform([request])
+        } catch {
+            Log.error("Vision OCR request failed", category: .ocr, error: error, ["id": id])
+        }
 
         let fullText = observationModels.map(\.text).joined(separator: "\n")
+        Log.debug("OCR extracted text", category: .ocr, ["id": id, "chars": fullText.count, "observations": observationModels.count])
         return OCRResult(id: id, extractedAt: Date(), text: fullText, observations: observationModels)
     }
 
     private static func persist(result: OCRResult, historyDirectory: URL) {
         let ocrURL = historyDirectory.appendingPathComponent("\(result.id)_ocr.json")
-        if let data = try? encoder.encode(result) {
-            try? data.write(to: ocrURL, options: .atomic)
+        do {
+            let data = try encoder.encode(result)
+            try data.write(to: ocrURL, options: .atomic)
+        } catch {
+            Log.error("Failed to write OCR sidecar", category: .ocr, error: error, ["id": result.id, "path": ocrURL.path])
         }
 
         // Patch ocrText in the context sidecar so search can find it

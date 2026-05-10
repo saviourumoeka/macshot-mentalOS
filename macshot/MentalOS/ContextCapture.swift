@@ -37,8 +37,13 @@ enum ContextCapture {
         SearchIndex.shared.add(metadata: metadata)
         let url = directory.appendingPathComponent("\(id)_context.json")
         ioQueue.async {
-            guard let data = try? encoder.encode(metadata) else { return }
-            try? data.write(to: url, options: .atomic)
+            do {
+                let data = try encoder.encode(metadata)
+                try data.write(to: url, options: .atomic)
+                Log.debug("Context sidecar written", category: .capture, ["id": id, "app": metadata.app ?? "nil"])
+            } catch {
+                Log.error("Failed to write context sidecar", category: .capture, error: error, ["id": id, "path": url.path])
+            }
         }
         // Group the capture into the presentation tree (App / Session subfolders of symlinks).
         // Runs after the sidecar write is queued; PresentationTree itself dispatches its disk work off-main.
@@ -62,14 +67,19 @@ enum ContextCapture {
         transform: @escaping (inout ContextMetadata) -> Void
     ) {
         ioQueue.async {
-            guard var metadata = read(id: id, from: directory) else { return }
-            transform(&metadata)
-            let url = directory.appendingPathComponent("\(id)_context.json")
-            guard let data = try? encoder.encode(metadata) else {
+            guard var metadata = read(id: id, from: directory) else {
+                Log.warn("Context sidecar update skipped: file missing", category: .capture, ["id": id])
                 DispatchQueue.main.async { completionOnMain?() }
                 return
             }
-            try? data.write(to: url, options: .atomic)
+            transform(&metadata)
+            let url = directory.appendingPathComponent("\(id)_context.json")
+            do {
+                let data = try encoder.encode(metadata)
+                try data.write(to: url, options: .atomic)
+            } catch {
+                Log.error("Failed to update context sidecar", category: .capture, error: error, ["id": id, "path": url.path])
+            }
             DispatchQueue.main.async { completionOnMain?() }
         }
     }

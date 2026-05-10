@@ -48,6 +48,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     }()
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+        Log.info("macshot launched", category: .app, [
+            "version": version,
+            "build": build,
+            "log_path": Log.logFileURL().path,
+        ])
+
         // Prevent multiple instances — if already running, activate the existing one and quit
         let bundleID = Bundle.main.bundleIdentifier ?? "com.sw33tlie.macshot.macshot"
         let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
