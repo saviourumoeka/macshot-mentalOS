@@ -83,6 +83,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         // something references ScreenshotHistory.shared.
         _ = ScreenshotHistory.shared
 
+        // Backfill the App/Session presentation tree from existing sidecars
+        // on first launch with this feature (or whenever the tree is missing).
+        let groupsRoot = PresentationTree.shared.rootURL
+        if !FileManager.default.fileExists(atPath: groupsRoot.path) {
+            PresentationTree.shared.rebuildAll()
+        }
+
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
         setupMainMenu()
         setupStatusBar()

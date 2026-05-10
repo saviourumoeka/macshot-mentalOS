@@ -1,5 +1,11 @@
 import Cocoa
 
+extension Notification.Name {
+    /// Posted on main after a history entry is removed (or the whole history cleared).
+    /// userInfo["id"]: String — the removed entry's UUID.
+    static let screenshotHistoryEntryWillRemove = Notification.Name("ScreenshotHistoryEntryWillRemove")
+}
+
 struct HistoryEntry {
     let id: String           // UUID filename (without extension)
     let fileExtension: String // "png" or "jpg"
@@ -271,14 +277,19 @@ class ScreenshotHistory {
         let entry = entries.remove(at: index)
         deleteFiles(for: entry.id, ext: entry.fileExtension)
         saveIndex()
+        NotificationCenter.default.post(name: .screenshotHistoryEntryWillRemove, object: nil, userInfo: ["id": id])
     }
 
     func clear() {
+        let removedIDs = entries.map { $0.id }
         for entry in entries {
             deleteFiles(for: entry.id, ext: entry.fileExtension)
         }
         entries.removeAll()
         saveIndex()
+        for id in removedIDs {
+            NotificationCenter.default.post(name: .screenshotHistoryEntryWillRemove, object: nil, userInfo: ["id": id])
+        }
     }
 
     func copyEntry(at index: Int) {

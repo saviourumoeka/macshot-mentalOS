@@ -11,6 +11,9 @@ struct ContextMetadata: Codable {
     let browserURL: String?
     var ocrText: String
     let createdAt: Date
+    /// Stable session identifier — captures within a short window of the same app share one.
+    /// Optional so older sidecars decode without migration.
+    var sessionID: String?
 
     init(
         id: String,
@@ -22,7 +25,8 @@ struct ContextMetadata: Codable {
         windowTitle: String? = nil,
         browserURL: String? = nil,
         ocrText: String = "",
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        sessionID: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -34,5 +38,6 @@ struct ContextMetadata: Codable {
         self.browserURL = browserURL
         self.ocrText = ocrText
         self.createdAt = createdAt
+        self.sessionID = sessionID
     }
 }

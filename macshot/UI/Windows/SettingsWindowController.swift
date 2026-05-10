@@ -1542,6 +1542,27 @@ class SettingsWindowController: NSWindowController, NSToolbarDelegate, NSWindowD
         stack.addArrangedSubview(repoButton)
         stack.setCustomSpacing(20, after: repoButton)
 
+        // Documents shortcut — print the one-line ln -s the user runs once to expose
+        // the captures tree under ~/Documents/MentalOS/Screen Captures.
+        let docsBtn = NSButton(title: L("Set up Documents shortcut…"), target: self, action: #selector(showDocumentsShortcutHelp))
+        docsBtn.bezelStyle = .rounded
+        docsBtn.font = NSFont.systemFont(ofSize: 11)
+        stack.addArrangedSubview(docsBtn)
+
+        let docsHint = NSTextField(labelWithString: L("Exposes captures (grouped by app + session) under ~/Documents/MentalOS/Screen Captures"))
+        docsHint.font = NSFont.systemFont(ofSize: 10)
+        docsHint.textColor = .tertiaryLabelColor
+        docsHint.alignment = .center
+        docsHint.maximumNumberOfLines = 2
+        stack.addArrangedSubview(docsHint)
+        stack.setCustomSpacing(8, after: docsHint)
+
+        let revealBtn = NSButton(title: L("Reveal Captures Folder"), target: self, action: #selector(revealGroupsFolder))
+        revealBtn.bezelStyle = .rounded
+        revealBtn.font = NSFont.systemFont(ofSize: 11)
+        stack.addArrangedSubview(revealBtn)
+        stack.setCustomSpacing(16, after: revealBtn)
+
         // Register with Accessibility — until a feature requests it, macshot won't
         // appear in System Settings → Privacy & Security → Accessibility. This button
         // forces the registration so users can grant access proactively.
@@ -1575,6 +1596,37 @@ class SettingsWindowController: NSWindowController, NSToolbarDelegate, NSWindowD
         if let url = URL(string: "https://github.com/sw33tlie/macshot") {
             NSWorkspace.shared.open(url)
         }
+    }
+
+    @objc private func showDocumentsShortcutHelp() {
+        let cmd = PresentationTree.setupCommand
+        let alert = NSAlert()
+        alert.messageText = L("Set up Documents shortcut")
+        alert.informativeText = String(format: L("macshot can't write to ~/Documents from the sandbox. Run this command once in Terminal to expose your captures at:\n\n%@\n\nCommand:\n%@"), PresentationTree.documentsShortcutPath, cmd)
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: L("Copy Command"))
+        alert.addButton(withTitle: L("Open Terminal"))
+        alert.addButton(withTitle: L("Cancel"))
+        let resp = alert.runModal()
+        switch resp {
+        case .alertFirstButtonReturn:
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(cmd, forType: .string)
+        case .alertSecondButtonReturn:
+            if let url = URL(string: "file:///System/Applications/Utilities/Terminal.app") {
+                NSWorkspace.shared.open(url)
+            }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(cmd, forType: .string)
+        default:
+            break
+        }
+    }
+
+    @objc private func revealGroupsFolder() {
+        let url = PresentationTree.shared.rootURL
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 
     @objc private func registerAccessibility() {

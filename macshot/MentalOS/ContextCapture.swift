@@ -40,6 +40,9 @@ enum ContextCapture {
             guard let data = try? encoder.encode(metadata) else { return }
             try? data.write(to: url, options: .atomic)
         }
+        // Group the capture into the presentation tree (App / Session subfolders of symlinks).
+        // Runs after the sidecar write is queued; PresentationTree itself dispatches its disk work off-main.
+        PresentationTree.shared.register(metadata: metadata, directory: directory)
     }
 
     /// Read the context sidecar for a given capture ID. Returns nil if missing.
