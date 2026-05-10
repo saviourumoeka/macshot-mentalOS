@@ -14,6 +14,12 @@ final class NotesSidebarView: NSView {
     private let notesScroll = NSScrollView()
     private let tagsField = NSTextField()
     private let savedIndicator = NSTextField(labelWithString: "")
+    private let chatButton = NSButton()
+
+    /// Provider for the screenshot image — the chat window needs the bitmap.
+    /// The editor sets this on configure() so the sidebar doesn't have to know
+    /// about the editor view.
+    var imageProvider: (() -> NSImage?)?
 
     private var entryID: String?
     private var historyDirectory: URL?
@@ -92,6 +98,17 @@ final class NotesSidebarView: NSView {
         savedIndicator.translatesAutoresizingMaskIntoConstraints = false
         addSubview(savedIndicator)
 
+        chatButton.title = "Chat about this"
+        chatButton.image = NSImage(systemSymbolName: "bubble.left.and.bubble.right",
+                                   accessibilityDescription: "Chat about this screenshot")
+        chatButton.imagePosition = .imageLeading
+        chatButton.bezelStyle = .rounded
+        chatButton.font = NSFont.systemFont(ofSize: 12)
+        chatButton.target = self
+        chatButton.action = #selector(chatClicked)
+        chatButton.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(chatButton)
+
         NSLayoutConstraint.activate([
             sep.leadingAnchor.constraint(equalTo: leadingAnchor),
             sep.topAnchor.constraint(equalTo: topAnchor),
@@ -119,10 +136,28 @@ final class NotesSidebarView: NSView {
 
             savedIndicator.leadingAnchor.constraint(equalTo: header.leadingAnchor),
             savedIndicator.topAnchor.constraint(equalTo: tagsField.bottomAnchor, constant: 8),
-            savedIndicator.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -10),
+
+            chatButton.leadingAnchor.constraint(equalTo: header.leadingAnchor),
+            chatButton.trailingAnchor.constraint(equalTo: header.trailingAnchor),
+            chatButton.topAnchor.constraint(equalTo: savedIndicator.bottomAnchor, constant: 12),
+            chatButton.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -14),
 
             notesScroll.bottomAnchor.constraint(equalTo: tagsLabel.topAnchor, constant: -12),
         ])
+    }
+
+    @objc private func chatClicked() {
+        guard let id = entryID, let dir = historyDirectory else { return }
+        flushPendingSave()
+        let img = imageProvider?() ?? loadImageFromHistory(id: id, in: dir)
+        guard let image = img else { return }
+        ChatWindowController.open(entryID: id, image: image, historyDirectory: dir)
+    }
+
+    private func loadImageFromHistory(id: String, in directory: URL) -> NSImage? {
+        let url = directory.appendingPathComponent("\(id).png")
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return NSImage(data: data)
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -142,12 +177,14 @@ final class NotesSidebarView: NSView {
                 : "No metadata yet."
             notesTextView.isEditable = (entryID != nil)
             tagsField.isEnabled = (entryID != nil)
+            chatButton.isEnabled = false
             loadedSnapshot = ("", [])
             return
         }
 
         notesTextView.string = metadata.note
         tagsField.stringValue = metadata.tags.joined(separator: ", ")
+        chatButton.isEnabled = true
         loadedSnapshot = (metadata.note, metadata.tags)
 
         var meta: [String] = []

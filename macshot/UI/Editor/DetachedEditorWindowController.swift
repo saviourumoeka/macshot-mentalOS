@@ -169,6 +169,7 @@ class DetachedEditorWindowController: NSObject, NSWindowDelegate {
         // Notes sidebar (right column) — always present.
         let sidebar = NotesSidebarView(frame: NSRect(x: winW - sidebarWidth, y: 0, width: sidebarWidth, height: winH - topBarHeight))
         sidebar.autoresizingMask = []
+        sidebar.imageProvider = { [weak view] in view?.captureSelectedRegion() }
         container.addSubview(sidebar)
         self.notesSidebar = sidebar
 
