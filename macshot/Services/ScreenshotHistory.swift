@@ -427,6 +427,7 @@ class ScreenshotHistory {
         let annURL = historyDir.appendingPathComponent("\(id)_annotations.json")
         let contextURL = historyDir.appendingPathComponent("\(id)_context.json")
         let ocrURL = historyDir.appendingPathComponent("\(id)_ocr.json")
+        let chatURL = historyDir.appendingPathComponent("\(id)_chat.json")
         try? FileManager.default.removeItem(at: fileURL)
         try? FileManager.default.removeItem(at: thumbURL)
         try? FileManager.default.removeItem(at: previewURL)
@@ -434,6 +435,7 @@ class ScreenshotHistory {
         try? FileManager.default.removeItem(at: annURL)
         try? FileManager.default.removeItem(at: contextURL)
         try? FileManager.default.removeItem(at: ocrURL)
+        try? FileManager.default.removeItem(at: chatURL)
     }
 
     private func makeThumbnail(image: NSImage, maxWidth: CGFloat) -> NSImage {
