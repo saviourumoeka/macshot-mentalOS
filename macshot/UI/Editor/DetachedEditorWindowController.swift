@@ -123,7 +123,8 @@ class DetachedEditorWindowController: NSObject, NSWindowDelegate {
         scrollView.hasHorizontalScroller = true
         scrollView.autohidesScrollers = true
         scrollView.drawsBackground = true
-        scrollView.backgroundColor = NSColor(white: 0.15, alpha: 1.0)
+        // System window background — adapts to light/dark, matches native editor apps (Preview, Pixelmator).
+        scrollView.backgroundColor = .windowBackgroundColor
         // We handle magnification ourselves in OverlayView.scrollWheel/magnify
         // to avoid NSScrollView's internal elastic physics at the zoom boundary.
         // Setting allowsMagnification=false prevents NSScrollView from fighting our zoom.
