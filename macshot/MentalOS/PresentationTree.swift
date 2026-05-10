@@ -103,12 +103,13 @@ final class PresentationTree {
             .appendingPathComponent(appBucket)
             .appendingPathComponent(sessionBucket)
         let linkURL = linkDir.appendingPathComponent(linkName)
-        let relativeTarget = "../../../history/\(sourceFileName)"
+        let sourceURL = directory.appendingPathComponent(sourceFileName)
 
         queue.async {
             try? FileManager.default.createDirectory(at: linkDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
             try? FileManager.default.removeItem(at: linkURL)
-            try? FileManager.default.createSymbolicLink(atPath: linkURL.path, withDestinationPath: relativeTarget)
+            // Copy the actual image file so Finder shows a real image, not a shortcut.
+            try? FileManager.default.copyItem(at: sourceURL, to: linkURL)
         }
     }
 
