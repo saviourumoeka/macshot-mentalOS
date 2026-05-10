@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- **MentalOS Workspace shell (TASK-001)** — new "Window → New Workspace…" menu item (⌥⌘N) opens a resizable 1280×800 window with a 3-pane `NSSplitViewController` (Sources | Chat | Notes). Each pane renders placeholder content; dividers are draggable with collapse support. Frame position autosaves across relaunches. `Log.info("workspace opened", category: .workspace)` fires on every open.
+
+---
+
 ## [4.1.0] - 2026-05-08
 
 The big release in 4.1.0 is a full **video editor effects suite**: zoom, censor, cut, speed, freeze, and text segments rendered through a custom Core Image compositor. Recording quality, color reproduction across external monitors, and capture-flow ergonomics also got significant attention.
