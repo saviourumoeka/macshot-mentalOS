@@ -21,5 +21,8 @@ if #available(macOS 14.0, *) {
         to: (@convention(thin) () -> AppDelegate).self
     )()
 }
-app.delegate = delegate
-app.run()
+
+MainActor.assumeIsolated {
+    app.delegate = delegate
+    app.run()
+}
