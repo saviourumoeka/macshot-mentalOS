@@ -18,6 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     private var ocrController: OCRResultController?
     private var historyMenu: NSMenu?
     private var historyOverlayController: HistoryOverlayController?
+    private var searchWindowController: SearchWindowController?
     private var isCapturing = false
     private var delayCountdownWindow: NSWindow?
     private var delayTimer: Timer?
@@ -47,6 +48,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     }()
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+        Log.info("macshot launched", category: .app, [
+            "version": version,
+            "build": build,
+            "log_path": Log.logFileURL().path,
+        ])
+
         // Prevent multiple instances — if already running, activate the existing one and quit
         let bundleID = Bundle.main.bundleIdentifier ?? "com.sw33tlie.macshot.macshot"
         let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
@@ -82,9 +91,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         // something references ScreenshotHistory.shared.
         _ = ScreenshotHistory.shared
 
+        // Backfill the App/Session presentation tree from existing sidecars
+        // on first launch with this feature (or whenever the tree is missing).
+        let groupsRoot = PresentationTree.shared.rootURL
+        if !FileManager.default.fileExists(atPath: groupsRoot.path) {
+            PresentationTree.shared.rebuildAll()
+        }
+
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
         setupMainMenu()
         setupStatusBar()
+        AIProviderRegistry.shared.summarizationProvider = OllamaSummarizer(model: "gemma4:e4b")
         if UserDefaults.standard.bool(forKey: "hideMenuBarIcon") {
             setMenuBarIconVisible(false)
         }
@@ -266,13 +283,42 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
 
     // MARK: - Main Menu (required when no storyboard)
 
+    @objc private func showCustomAboutPanel() {
+        // Standard About panel with author + repo link injected via the credits attributed string.
+        let credits = NSMutableAttributedString()
+        let made = NSAttributedString(
+            string: "Made by sw33tlie\n",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11),
+                .foregroundColor: NSColor.labelColor,
+            ])
+        credits.append(made)
+
+        let linkAttrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 11),
+            .foregroundColor: NSColor.linkColor,
+            .link: URL(string: "https://github.com/saviourumoeka/macshot-mentalOS") as Any,
+            .underlineStyle: NSUnderlineStyle.single.rawValue,
+        ]
+        credits.append(NSAttributedString(string: "github.com/saviourumoeka/macshot-mentalOS", attributes: linkAttrs))
+
+        let para = NSMutableParagraphStyle()
+        para.alignment = .center
+        credits.addAttribute(.paragraphStyle, value: para, range: NSRange(location: 0, length: credits.length))
+
+        NSApp.orderFrontStandardAboutPanel(options: [
+            NSApplication.AboutPanelOptionKey.credits: credits,
+        ])
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     private func setupMainMenu() {
         let mainMenu = NSMenu()
         let appMenuItem = NSMenuItem()
         mainMenu.addItem(appMenuItem)
 
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "About macshot", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(withTitle: "About macshot", action: #selector(showCustomAboutPanel), keyEquivalent: "")
         appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(withTitle: "Quit macshot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appMenuItem.submenu = appMenu
@@ -417,6 +463,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         HotkeyManager.applyMenuShortcut(for: .historyOverlay, to: historyOverlayItem)
         menu.addItem(historyOverlayItem)
 
+        let searchItem = NSMenuItem(title: L("Search Captures"), action: #selector(showMentalSearch), keyEquivalent: "")
+        searchItem.target = self
+        searchItem.image = NSImage(systemSymbolName: "magnifyingglass", accessibilityDescription: nil)
+        HotkeyManager.applyMenuShortcut(for: .mentalSearch, to: searchItem)
+        menu.addItem(searchItem)
+
         menu.addItem(NSMenuItem.separator())
 
         let openImageItem = NSMenuItem(title: L("Open Image..."), action: #selector(openImageFromMenu), keyEquivalent: "")
@@ -489,6 +541,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
             },
             captureLastArea: { [weak self] in
                 DispatchQueue.main.async { self?.captureLastArea() }
+            },
+            mentalSearch: { [weak self] in
+                DispatchQueue.main.async { self?.showMentalSearch() }
             }
         )
     }
@@ -583,6 +638,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         }
         controller.show()
         historyOverlayController = controller
+    }
+
+    @objc private func showMentalSearch() {
+        if let existing = searchWindowController {
+            // Toggle: second hotkey press dismisses the panel
+            existing.dismiss()
+            return
+        }
+        let controller = SearchWindowController()
+        controller.onDismiss = { [weak self] in
+            self?.searchWindowController = nil
+        }
+        controller.show()
+        searchWindowController = controller
     }
 
     @objc private func captureOCR() {
@@ -1368,6 +1437,9 @@ extension AppDelegate: OverlayWindowControllerDelegate {
     }
 
     func overlayDidConfirm(_ controller: OverlayWindowController, capturedImage: NSImage?, annotationData: CaptureAnnotationData?) {
+        // Capture context before dismissOverlays() clears previousApp via returnFocusIfNeeded()
+        let contextApp = previousApp
+        let contextWindowTitle = capturedWindowTitle
         dismissOverlays()
         if let image = capturedImage {
             ScreenshotHistory.shared.add(
@@ -1376,6 +1448,11 @@ extension AppDelegate: OverlayWindowControllerDelegate {
                 annotations: annotationData?.annotations)
             // The entry just added is at index 0
             let entryID = ScreenshotHistory.shared.entries.first?.id
+            if let id = entryID {
+                ContextCapture.write(id: id, app: contextApp, windowTitle: contextWindowTitle,
+                                     to: ScreenshotHistory.shared.historyDirectory)
+                CaptureOCR.run(id: id, image: image, historyDirectory: ScreenshotHistory.shared.historyDirectory)
+            }
             // Defer thumbnail to next runloop cycle so overlay teardown completes first
             // and the main thread is free for the next capture trigger
             let annData = annotationData
@@ -1456,6 +1533,11 @@ extension AppDelegate: OverlayWindowControllerDelegate {
     func overlayDidRequestPin(_ controller: OverlayWindowController, image: NSImage) {
         ScreenshotHistory.shared.add(image: image)
         let appToRefocus = previousApp
+        if let id = ScreenshotHistory.shared.entries.first?.id {
+            ContextCapture.write(id: id, app: previousApp, windowTitle: capturedWindowTitle,
+                                 to: ScreenshotHistory.shared.historyDirectory)
+            CaptureOCR.run(id: id, image: image, historyDirectory: ScreenshotHistory.shared.historyDirectory)
+        }
         dismissOverlays(refocusPreviousApp: false)
         let pin = PinWindowController(image: image)
         pin.delegate = self
@@ -2158,6 +2240,18 @@ extension AppDelegate: OverlayWindowControllerDelegate {
         }
     }
 
+    func overlayDidRequestNextScreen(_ controller: OverlayWindowController) {
+        guard overlayControllers.count > 1,
+              let idx = overlayControllers.firstIndex(where: { $0 === controller }) else { return }
+        let next = overlayControllers[(idx + 1) % overlayControllers.count]
+        next.makeKey()
+        let f = next.screen.frame
+        let primaryH = NSScreen.screens.first?.frame.height ?? f.height
+        let cgPoint = CGPoint(x: f.midX, y: primaryH - f.midY)
+        CGWarpMouseCursorPosition(cgPoint)
+        CGAssociateMouseAndMouseCursorPosition(1)
+    }
+
     private func handleScrollCaptureCompleted(finalImage: NSImage?) {
         scrollCapturePreviewPanel?.close()
         scrollCapturePreviewPanel = nil
@@ -2262,6 +2356,7 @@ extension AppDelegate: NSMenuDelegate {
         alert.alertStyle = .warning
         if alert.runModal() == .alertFirstButtonReturn {
             ScreenshotHistory.shared.clear()
+            SearchIndex.shared.reset()
         }
     }
 }

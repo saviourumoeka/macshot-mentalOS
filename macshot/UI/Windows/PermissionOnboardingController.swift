@@ -1,5 +1,6 @@
 import Cocoa
 import CoreGraphics
+import ScreenCaptureKit
 
 /// A custom onboarding window shown on first launch (or when screen recording
 /// permission is missing). Guides the user step-by-step instead of letting
@@ -202,35 +203,49 @@ class PermissionOnboardingController: NSWindowController {
 
     // MARK: - Permission polling
 
+    private var isCheckingPermission = false
+
     private func startPolling() {
         pollTimer?.invalidate()
-        // Poll every 0.75s using CGPreflightScreenCaptureAccess() — this is a pure
-        // TCC status query that never triggers the native system dialog.
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.75, repeats: true) { [weak self] _ in
             self?.checkPermission()
         }
     }
 
     private func checkPermission() {
-        guard !permissionGranted else { return }
-        if CGPreflightScreenCaptureAccess() {
-            permissionGranted = true
-            pollTimer?.invalidate()
-            pollTimer = nil
-            showGranted()
+        guard !permissionGranted, !isCheckingPermission else { return }
+        isCheckingPermission = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.isCheckingPermission = false }
+            let granted = await Self.probeScreenCaptureAccess()
+            if granted, !self.permissionGranted {
+                self.permissionGranted = true
+                self.pollTimer?.invalidate()
+                self.pollTimer = nil
+                self.showGranted()
+            }
         }
     }
 
-    /// Check screen recording permission without triggering a system dialog.
-    /// Uses CGPreflightScreenCaptureAccess() which is purely a status query.
-    /// NOTE: This may return a stale cached value if permission was revoked since launch.
-    static func hasScreenRecordingPermission() -> Bool {
-        return CGPreflightScreenCaptureAccess()
+    /// Attempt a minimal SCShareableContent fetch to determine if screen recording is allowed.
+    /// CGPreflightScreenCaptureAccess() caches its result per-process and is unreliable on
+    /// macOS 15+ for detecting permission changes while the app is running.
+    private static func probeScreenCaptureAccess() async -> Bool {
+        do {
+            _ = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+            return true
+        } catch {
+            return false
+        }
     }
 
-    /// Check at app launch — synchronous and dialog-free.
+    /// Check at app launch whether screen recording access is available.
     static func checkPermissionSync(completion: @escaping (Bool) -> Void) {
-        completion(hasScreenRecordingPermission())
+        Task {
+            let granted = await probeScreenCaptureAccess()
+            await MainActor.run { completion(granted) }
+        }
     }
 
     private func showGranted() {

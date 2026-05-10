@@ -1,5 +1,11 @@
 import Cocoa
 
+extension Notification.Name {
+    /// Posted on main after a history entry is removed (or the whole history cleared).
+    /// userInfo["id"]: String — the removed entry's UUID.
+    static let screenshotHistoryEntryWillRemove = Notification.Name("ScreenshotHistoryEntryWillRemove")
+}
+
 struct HistoryEntry {
     let id: String           // UUID filename (without extension)
     let fileExtension: String // "png" or "jpg"
@@ -31,6 +37,8 @@ class ScreenshotHistory {
 
     private let historyDir: URL
     private let indexFile: URL
+
+    var historyDirectory: URL { historyDir }
 
     var maxEntries: Int {
         if UserDefaults.standard.bool(forKey: "historyUnlimited") { return Int.max }
@@ -269,14 +277,19 @@ class ScreenshotHistory {
         let entry = entries.remove(at: index)
         deleteFiles(for: entry.id, ext: entry.fileExtension)
         saveIndex()
+        NotificationCenter.default.post(name: .screenshotHistoryEntryWillRemove, object: nil, userInfo: ["id": id])
     }
 
     func clear() {
+        let removedIDs = entries.map { $0.id }
         for entry in entries {
             deleteFiles(for: entry.id, ext: entry.fileExtension)
         }
         entries.removeAll()
         saveIndex()
+        for id in removedIDs {
+            NotificationCenter.default.post(name: .screenshotHistoryEntryWillRemove, object: nil, userInfo: ["id": id])
+        }
     }
 
     func copyEntry(at index: Int) {
@@ -412,11 +425,17 @@ class ScreenshotHistory {
         let previewURL = historyDir.appendingPathComponent("\(id)_preview.png")
         let rawURL = historyDir.appendingPathComponent("\(id)_raw.png")
         let annURL = historyDir.appendingPathComponent("\(id)_annotations.json")
+        let contextURL = historyDir.appendingPathComponent("\(id)_context.json")
+        let ocrURL = historyDir.appendingPathComponent("\(id)_ocr.json")
+        let chatURL = historyDir.appendingPathComponent("\(id)_chat.json")
         try? FileManager.default.removeItem(at: fileURL)
         try? FileManager.default.removeItem(at: thumbURL)
         try? FileManager.default.removeItem(at: previewURL)
         try? FileManager.default.removeItem(at: rawURL)
         try? FileManager.default.removeItem(at: annURL)
+        try? FileManager.default.removeItem(at: contextURL)
+        try? FileManager.default.removeItem(at: ocrURL)
+        try? FileManager.default.removeItem(at: chatURL)
     }
 
     private func makeThumbnail(image: NSImage, maxWidth: CGFloat) -> NSImage {

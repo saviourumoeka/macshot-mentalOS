@@ -1523,7 +1523,59 @@ class SettingsWindowController: NSWindowController, NSToolbarDelegate, NSWindowD
         license.font = NSFont.systemFont(ofSize: 11)
         license.textColor = .tertiaryLabelColor
         stack.addArrangedSubview(license)
-        stack.setCustomSpacing(20, after: license)
+        stack.setCustomSpacing(6, after: license)
+
+        // Made by
+        let madeBy = NSTextField(labelWithString: L("Made by sw33tlie"))
+        madeBy.font = NSFont.systemFont(ofSize: 11)
+        madeBy.textColor = .tertiaryLabelColor
+        stack.addArrangedSubview(madeBy)
+        stack.setCustomSpacing(8, after: madeBy)
+
+        // Repository link — clickable, opens in browser
+        let repoButton = NSButton(title: "github.com/saviourumoeka/macshot-mentalOS", target: self, action: #selector(openRepoURL))
+        repoButton.bezelStyle = .inline
+        repoButton.isBordered = false
+        repoButton.contentTintColor = .linkColor
+        repoButton.font = NSFont.systemFont(ofSize: 11)
+        if let cell = repoButton.cell as? NSButtonCell { cell.highlightsBy = [] }
+        stack.addArrangedSubview(repoButton)
+        stack.setCustomSpacing(20, after: repoButton)
+
+        // Documents shortcut — print the one-line ln -s the user runs once to expose
+        // the captures tree under ~/Documents/MentalOS/Screen Captures.
+        let docsBtn = NSButton(title: L("Set up Documents shortcut…"), target: self, action: #selector(showDocumentsShortcutHelp))
+        docsBtn.bezelStyle = .rounded
+        docsBtn.font = NSFont.systemFont(ofSize: 11)
+        stack.addArrangedSubview(docsBtn)
+
+        let docsHint = NSTextField(labelWithString: L("Exposes captures (grouped by app + session) under ~/Documents/MentalOS/Screen Captures"))
+        docsHint.font = NSFont.systemFont(ofSize: 10)
+        docsHint.textColor = .tertiaryLabelColor
+        docsHint.alignment = .center
+        docsHint.maximumNumberOfLines = 2
+        stack.addArrangedSubview(docsHint)
+        stack.setCustomSpacing(8, after: docsHint)
+
+        let revealBtn = NSButton(title: L("Reveal Captures Folder"), target: self, action: #selector(revealGroupsFolder))
+        revealBtn.bezelStyle = .rounded
+        revealBtn.font = NSFont.systemFont(ofSize: 11)
+        stack.addArrangedSubview(revealBtn)
+        stack.setCustomSpacing(16, after: revealBtn)
+
+        // Register with Accessibility — until a feature requests it, macshot won't
+        // appear in System Settings → Privacy & Security → Accessibility. This button
+        // forces the registration so users can grant access proactively.
+        let axBtn = NSButton(title: L("Register with macOS Accessibility"), target: self, action: #selector(registerAccessibility))
+        axBtn.bezelStyle = .rounded
+        axBtn.font = NSFont.systemFont(ofSize: 11)
+        stack.addArrangedSubview(axBtn)
+
+        let axHint = NSTextField(labelWithString: L("Adds macshot to System Settings → Privacy & Security → Accessibility"))
+        axHint.font = NSFont.systemFont(ofSize: 10)
+        axHint.textColor = .tertiaryLabelColor
+        stack.addArrangedSubview(axHint)
+        stack.setCustomSpacing(16, after: axHint)
 
         // Screen Info (debug) — gathers display & capture metadata, copies to clipboard
         let screenInfoBtn = NSButton(title: L("Copy Screen Info"), target: self, action: #selector(copyScreenInfo))
@@ -1538,6 +1590,66 @@ class SettingsWindowController: NSWindowController, NSToolbarDelegate, NSWindowD
         stack.addArrangedSubview(screenInfoHint)
 
         return container
+    }
+
+    @objc private func openRepoURL() {
+        if let url = URL(string: "https://github.com/saviourumoeka/macshot-mentalOS") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    @objc private func showDocumentsShortcutHelp() {
+        let cmd = PresentationTree.setupCommand
+        let alert = NSAlert()
+        alert.messageText = L("Set up Documents shortcut")
+        alert.informativeText = String(format: L("macshot can't write to ~/Documents from the sandbox. Run this command once in Terminal to expose your captures at:\n\n%@\n\nCommand:\n%@"), PresentationTree.documentsShortcutPath, cmd)
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: L("Copy Command"))
+        alert.addButton(withTitle: L("Open Terminal"))
+        alert.addButton(withTitle: L("Cancel"))
+        let resp = alert.runModal()
+        switch resp {
+        case .alertFirstButtonReturn:
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(cmd, forType: .string)
+        case .alertSecondButtonReturn:
+            if let url = URL(string: "file:///System/Applications/Utilities/Terminal.app") {
+                NSWorkspace.shared.open(url)
+            }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(cmd, forType: .string)
+        default:
+            break
+        }
+    }
+
+    @objc private func revealGroupsFolder() {
+        let url = PresentationTree.shared.rootURL
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
+    @objc private func registerAccessibility() {
+        let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
+        let trusted = AXIsProcessTrustedWithOptions(opts)
+        let alert = NSAlert()
+        if trusted {
+            alert.messageText = L("Accessibility Already Granted")
+            alert.informativeText = L("macshot already has Accessibility access.")
+            alert.alertStyle = .informational
+            alert.addButton(withTitle: L("OK"))
+        } else {
+            alert.messageText = L("Accessibility Registration Triggered")
+            alert.informativeText = L("macshot has been added to System Settings → Privacy & Security → Accessibility. Open it now and toggle macshot on.")
+            alert.alertStyle = .informational
+            alert.addButton(withTitle: L("Open Settings"))
+            alert.addButton(withTitle: L("Later"))
+        }
+        let resp = alert.runModal()
+        if !trusted, resp == .alertFirstButtonReturn,
+           let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     @objc private func copyScreenInfo() {

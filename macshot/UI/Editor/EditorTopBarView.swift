@@ -13,12 +13,19 @@ class EditorTopBarView: NSView {
     override init(frame: NSRect) {
         super.init(frame: frame)
         wantsLayer = true
-        layer?.backgroundColor = ToolbarLayout.bgColor.cgColor
         autoresizingMask = [.width, .minYMargin]  // pin to top, stretch width
+
+        // Native translucent titlebar material — adapts to system light/dark.
+        let bg = NSVisualEffectView(frame: bounds)
+        bg.material = .titlebar
+        bg.blendingMode = .withinWindow
+        bg.state = .followsWindowActiveState
+        bg.autoresizingMask = [.width, .height]
+        addSubview(bg, positioned: .below, relativeTo: nil)
 
         sizeLabel = makeLabel("")
         sizeLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .medium)
-        sizeLabel.textColor = ToolbarLayout.iconColor.withAlphaComponent(0.45)
+        sizeLabel.textColor = .secondaryLabelColor
 
         let cropBtn = makeButton("crop", tooltip: L("Crop"), action: #selector(cropClicked))
         let flipHBtn = makeButton("arrow.left.and.right.righttriangle.left.righttriangle.right", tooltip: L("Flip Horizontal"), action: #selector(flipHClicked))
@@ -31,14 +38,14 @@ class EditorTopBarView: NSView {
         zoomButton.isBordered = false
         zoomButton.title = "100% ▾"
         zoomButton.font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .medium)
-        zoomButton.contentTintColor = ToolbarLayout.iconColor.withAlphaComponent(0.45)
+        zoomButton.contentTintColor = .secondaryLabelColor
         zoomButton.target = self
         zoomButton.action = #selector(zoomButtonClicked)
 
-        // Bottom border
+        // Bottom border — system separator, adapts to appearance
         let border = NSView()
         border.wantsLayer = true
-        border.layer?.backgroundColor = NSColor(white: 0.25, alpha: 1.0).cgColor
+        border.layer?.backgroundColor = NSColor.separatorColor.cgColor
         border.translatesAutoresizingMaskIntoConstraints = false
         addSubview(border)
 
@@ -92,7 +99,7 @@ class EditorTopBarView: NSView {
         btn.isBordered = false
         btn.image = NSImage(systemSymbolName: symbol, accessibilityDescription: tooltip)?
             .withSymbolConfiguration(.init(pointSize: 13, weight: .medium))
-        btn.contentTintColor = ToolbarLayout.iconColor.withAlphaComponent(0.85)
+        btn.contentTintColor = .labelColor
         btn.toolTip = tooltip
         btn.target = self
         btn.action = action
@@ -201,7 +208,7 @@ class EditorTopBarView: NSView {
         btn.isBordered = true
         btn.title = L("Done")
         btn.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
-        btn.contentTintColor = ToolbarLayout.accentColor
+        btn.contentTintColor = .controlAccentColor
         btn.target = self
         btn.action = #selector(doneClicked)
         btn.translatesAutoresizingMaskIntoConstraints = false
