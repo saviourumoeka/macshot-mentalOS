@@ -289,10 +289,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         let linkAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 11),
             .foregroundColor: NSColor.linkColor,
-            .link: URL(string: "https://github.com/sw33tlie/macshot") as Any,
+            .link: URL(string: "https://github.com/saviourumoeka/macshot-mentalOS") as Any,
             .underlineStyle: NSUnderlineStyle.single.rawValue,
         ]
-        credits.append(NSAttributedString(string: "github.com/sw33tlie/macshot", attributes: linkAttrs))
+        credits.append(NSAttributedString(string: "github.com/saviourumoeka/macshot-mentalOS", attributes: linkAttrs))
 
         let para = NSMutableParagraphStyle()
         para.alignment = .center

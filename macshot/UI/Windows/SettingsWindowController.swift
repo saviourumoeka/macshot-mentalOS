@@ -1533,7 +1533,7 @@ class SettingsWindowController: NSWindowController, NSToolbarDelegate, NSWindowD
         stack.setCustomSpacing(8, after: madeBy)
 
         // Repository link — clickable, opens in browser
-        let repoButton = NSButton(title: "github.com/sw33tlie/macshot", target: self, action: #selector(openRepoURL))
+        let repoButton = NSButton(title: "github.com/saviourumoeka/macshot-mentalOS", target: self, action: #selector(openRepoURL))
         repoButton.bezelStyle = .inline
         repoButton.isBordered = false
         repoButton.contentTintColor = .linkColor
@@ -1593,7 +1593,7 @@ class SettingsWindowController: NSWindowController, NSToolbarDelegate, NSWindowD
     }
 
     @objc private func openRepoURL() {
-        if let url = URL(string: "https://github.com/sw33tlie/macshot") {
+        if let url = URL(string: "https://github.com/saviourumoeka/macshot-mentalOS") {
             NSWorkspace.shared.open(url)
         }
     }
