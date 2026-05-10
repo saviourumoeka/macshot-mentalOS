@@ -28,7 +28,7 @@ Plan reference: `~/.claude/plans/so-far-this-tool-encapsulated-cascade.md`
 
 #### Progress log
 
-- **2026-05-10 00:00** — Implemented all acceptance criteria. Created `WorkspaceSplitView` (NSSplitViewController subclass, 3 panes with placeholder VCs), `WorkspaceWindowController` (@MainActor, 1280×800, frame autosave via `setFrameAutosaveName`, Log.info on open, static `activeControllers` for lifetime management). Wired `openNewWorkspace` into AppDelegate `setupMainMenu()` — adds "Window" NSMenu with ⌥⌘N item, set as `NSApp.windowsMenu`. Debug + Release builds clean.
+- **2026-05-10 00:00** — Implemented all acceptance criteria. Created `WorkspaceSplitView` (NSSplitViewController subclass, 3 panes with placeholder VCs), `WorkspaceWindowController` (@MainActor, 1280×800, frame autosave via `setFrameAutosaveName`, Log.info on open, static `activeControllers` for lifetime management). Wired `openNewWorkspace` into AppDelegate `setupMainMenu()` — adds "Window" NSMenu with ⌥⌘N item, set as `NSApp.windowsMenu`. Debug + Release builds clean. Commit: f229774. Branch `feat/task-001-workspace-shell` ready — push blocked by permission prompt in scheduled context; run `git push origin feat/task-001-workspace-shell` manually or approve next tick.
 
 ---
 
