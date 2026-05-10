@@ -140,7 +140,7 @@ final class NotesSidebarView: NSView {
             chatButton.leadingAnchor.constraint(equalTo: header.leadingAnchor),
             chatButton.trailingAnchor.constraint(equalTo: header.trailingAnchor),
             chatButton.topAnchor.constraint(equalTo: savedIndicator.bottomAnchor, constant: 12),
-            chatButton.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -14),
+            chatButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -14),
 
             notesScroll.bottomAnchor.constraint(equalTo: tagsLabel.topAnchor, constant: -12),
         ])

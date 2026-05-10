@@ -11,6 +11,7 @@ protocol OverlayViewDelegate: AnyObject {
     func overlayViewDidRequestSave()
     func overlayViewDidRequestPin()
     func overlayViewDidRequestOCR()
+    func overlayViewDidRequestChat()
     func overlayViewDidRequestQuickSave()
     func overlayViewDidRequestFileSave()
     func overlayViewDidRequestUpload()
@@ -6233,6 +6234,8 @@ class OverlayView: NSView {
             overlayDelegate?.overlayViewDidRequestPin()
         case .ocr:
             overlayDelegate?.overlayViewDidRequestOCR()
+        case .chat:
+            overlayDelegate?.overlayViewDidRequestChat()
         case .autoRedact:
             performAutoRedact()
         case .removeBackground:

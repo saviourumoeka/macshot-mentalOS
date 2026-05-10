@@ -26,6 +26,7 @@ class DetachedEditorWindowController: NSObject, NSWindowDelegate {
     private var topBar: EditorTopBarView?
     private var notesSidebar: NotesSidebarView?
     private var editorScrollView: NSScrollView?
+    private var chromeContainer: NSView?
     private var addCaptureHandler: AddCaptureOverlayHandler?
     private var ocrController: OCRResultController?
     private static var activeControllers: [DetachedEditorWindowController] = []
@@ -76,7 +77,8 @@ class DetachedEditorWindowController: NSObject, NSWindowDelegate {
         // Add space for top bar (32), bottom toolbar (44), options row (40), right toolbar (46), padding
         let chromeW: CGFloat = 46 + 60    // right toolbar + horizontal padding
         let chromeH: CGFloat = 32 + 44 + 40 + 40  // top bar + bottom toolbar + options row + padding
-        let winW = min(maxW, max(minW, imgSize.width + chromeW))
+        let sidebarWidth: CGFloat = NotesSidebarView.preferredWidth
+        let winW = min(maxW, max(minW, imgSize.width + chromeW + sidebarWidth))
         let winH = min(maxH, max(minH, imgSize.height + chromeH))
 
         let win = EditorWindow(
@@ -121,7 +123,6 @@ class DetachedEditorWindowController: NSObject, NSWindowDelegate {
         let topBarHeight: CGFloat = 32
         // Notes sidebar is always present so users can always find a place to write notes.
         // For captures not yet in history, we auto-persist below so the pane is immediately usable.
-        let sidebarWidth: CGFloat = NotesSidebarView.preferredWidth
         let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: winW - sidebarWidth, height: winH - topBarHeight))
         // Manual layout via windowDidResize so the sidebar can claim a fixed-width column
         // on the right while the canvas takes the remaining space.
@@ -154,10 +155,16 @@ class DetachedEditorWindowController: NSObject, NSWindowDelegate {
         scrollView.contentView = clipView
         scrollView.documentView = view
 
-        // Container holds scroll view + toolbars (toolbars are siblings, not inside scroll view)
+        // Container holds everything
         let container = NSView(frame: NSRect(origin: .zero, size: NSSize(width: winW, height: winH)))
         container.autoresizingMask = [.width, .height]
-        container.addSubview(scrollView)
+        
+        let chromeContainer = NSView(frame: NSRect(origin: .zero, size: NSSize(width: winW - sidebarWidth, height: winH)))
+        chromeContainer.autoresizingMask = [] // Layout handled manually
+        self.chromeContainer = chromeContainer
+        container.addSubview(chromeContainer)
+        
+        chromeContainer.addSubview(scrollView)
 
         // Top bar — real NSView pinned to top of container
         let topBar = EditorTopBarView(frame: NSRect(x: 0, y: winH - 32, width: winW, height: 32))
@@ -190,8 +197,8 @@ class DetachedEditorWindowController: NSObject, NSWindowDelegate {
         NotificationCenter.default.addObserver(forName: NSScrollView.didEndLiveMagnifyNotification, object: scrollView, queue: .main, using: updateZoom)
         NotificationCenter.default.addObserver(forName: NSScrollView.didLiveScrollNotification, object: scrollView, queue: .main, using: updateZoom)
 
-        // Set chrome parent BEFORE applySelection so toolbars are added to container, not documentView
-        view.chromeParentView = container
+        // Set chrome parent BEFORE applySelection so toolbars are added to chromeContainer, not documentView
+        view.chromeParentView = chromeContainer
 
         view.applySelection(NSRect(origin: .zero, size: imgSize))
         if !annotations.isEmpty { view.setAnnotations(annotations) }
@@ -301,6 +308,7 @@ class DetachedEditorWindowController: NSObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         notesSidebar?.flushPendingSave()
         notesSidebar = nil
+        chromeContainer = nil
         editorScrollView = nil
         topBar = nil
         overlayView?.reset()
@@ -327,6 +335,7 @@ class DetachedEditorWindowController: NSObject, NSWindowDelegate {
         let sidebarW = notesSidebar?.frame.width ?? 0
         topBar?.frame = NSRect(x: 0, y: h - topBarH, width: w, height: topBarH)
         notesSidebar?.frame = NSRect(x: w - sidebarW, y: 0, width: sidebarW, height: h - topBarH)
+        chromeContainer?.frame = NSRect(x: 0, y: 0, width: w - sidebarW, height: h)
         editorScrollView?.frame = NSRect(x: 0, y: 0, width: w - sidebarW, height: h - topBarH)
     }
 
@@ -501,6 +510,17 @@ extension DetachedEditorWindowController: OverlayViewDelegate {
             rawImage: rawImage,
             annotations: annotations.isEmpty ? nil : annotations)
         historyEntryID = ScreenshotHistory.shared.entries.first?.id
+
+        // Write the context sidecar so notes, chat, and PresentationTree all work.
+        if let id = historyEntryID {
+            let dir = ScreenshotHistory.shared.historyDirectory
+            ContextCapture.write(id: id, app: nil, windowTitle: nil, to: dir)
+            CaptureOCR.run(id: id, image: compositedImage, historyDirectory: dir)
+
+            // Re-configure the sidebar now that we have a valid entryID
+            notesSidebar?.configure(entryID: id, historyDirectory: dir)
+        }
+
         if historyEntryID != nil {
             topBar?.showDoneButton()
             topBar?.onDone = { [weak self] in self?.commitToHistory() }
@@ -583,6 +603,18 @@ extension DetachedEditorWindowController: OverlayViewDelegate {
     func overlayViewDidRequestInputMonitoringPermission() {}
     func overlayViewDidChangeWindowSnapState() {}  // Not applicable in editor mode
     func overlayViewDidRequestNextScreen() {}  // Capture-overlay only
+
+    func overlayViewDidRequestChat() {
+        guard let raw = overlayView?.captureSelectedRegion() else { return }
+        let image = applyPostProcessing(raw)
+
+        // Ensure capture is saved to history so chat transcript is persisted
+        ensureInHistory(compositedImage: image)
+
+        guard let id = historyEntryID else { return }
+        let dir = ScreenshotHistory.shared.historyDirectory
+        ChatWindowController.open(entryID: id, image: image, historyDirectory: dir)
+    }
 
     func overlayViewDidRequestAddCapture() {
         guard let editorWindow = window else { return }

@@ -555,6 +555,7 @@ extension OverlayWindowController: OverlayViewDelegate {
     }
 
     func overlayViewDidRequestAddCapture() {}  // editor-only
+    func overlayViewDidRequestChat() {}  // editor-only — chat accessible from sidebar
 
     func overlayViewDidRequestNextScreen() {
         overlayDelegate?.overlayDidRequestNextScreen(self)
