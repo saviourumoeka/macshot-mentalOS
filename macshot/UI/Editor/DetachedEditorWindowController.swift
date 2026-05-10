@@ -24,6 +24,8 @@ class DetachedEditorWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private var overlayView: OverlayView?
     private var topBar: EditorTopBarView?
+    private var notesSidebar: NotesSidebarView?
+    private var editorScrollView: NSScrollView?
     private var addCaptureHandler: AddCaptureOverlayHandler?
     private var ocrController: OCRResultController?
     private static var activeControllers: [DetachedEditorWindowController] = []
@@ -117,8 +119,13 @@ class DetachedEditorWindowController: NSObject, NSWindowDelegate {
         // scrollbar and content don't go behind the top bar. Bottom/right toolbars
         // are handled via content insets since their sizes are dynamic.
         let topBarHeight: CGFloat = 32
-        let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: winW, height: winH - topBarHeight))
-        scrollView.autoresizingMask = [.width, .height]
+        let showNotesSidebar = (historyEntryID != nil)
+        let sidebarWidth: CGFloat = showNotesSidebar ? NotesSidebarView.preferredWidth : 0
+        let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: winW - sidebarWidth, height: winH - topBarHeight))
+        // Manual layout via windowDidResize so the sidebar can claim a fixed-width column
+        // on the right while the canvas takes the remaining space.
+        scrollView.autoresizingMask = []
+        self.editorScrollView = scrollView
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = true
         scrollView.autohidesScrollers = true
@@ -154,8 +161,18 @@ class DetachedEditorWindowController: NSObject, NSWindowDelegate {
         // Top bar — real NSView pinned to top of container
         let topBar = EditorTopBarView(frame: NSRect(x: 0, y: winH - 32, width: winW, height: 32))
         topBar.overlayView = view
+        topBar.autoresizingMask = []  // manual layout (sidebar splits width)
         container.addSubview(topBar)
         self.topBar = topBar
+
+        // Notes sidebar (right column) — only attached when capture is in history.
+        if showNotesSidebar {
+            let sidebar = NotesSidebarView(frame: NSRect(x: winW - sidebarWidth, y: 0, width: sidebarWidth, height: winH - topBarHeight))
+            sidebar.autoresizingMask = []
+            sidebar.configure(entryID: historyEntryID, historyDirectory: ScreenshotHistory.shared.historyDirectory)
+            container.addSubview(sidebar)
+            self.notesSidebar = sidebar
+        }
 
         // Show "Done" button when editing a history entry
         if historyEntryID != nil {
@@ -273,6 +290,10 @@ class DetachedEditorWindowController: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
+        notesSidebar?.flushPendingSave()
+        notesSidebar = nil
+        editorScrollView = nil
+        topBar = nil
         overlayView?.reset()
         overlayView?.overlayDelegate = nil
         window?.contentView = nil
@@ -283,6 +304,21 @@ class DetachedEditorWindowController: NSObject, NSWindowDelegate {
         if Self.activeControllers.isEmpty {
             (NSApp.delegate as? AppDelegate)?.returnFocusIfNeeded()
         }
+    }
+
+    func windowDidResize(_ notification: Notification) {
+        relayoutContainerSubviews()
+    }
+
+    private func relayoutContainerSubviews() {
+        guard let container = window?.contentView else { return }
+        let w = container.bounds.width
+        let h = container.bounds.height
+        let topBarH: CGFloat = 32
+        let sidebarW = notesSidebar?.frame.width ?? 0
+        topBar?.frame = NSRect(x: 0, y: h - topBarH, width: w, height: topBarH)
+        notesSidebar?.frame = NSRect(x: w - sidebarW, y: 0, width: sidebarW, height: h - topBarH)
+        editorScrollView?.frame = NSRect(x: 0, y: 0, width: w - sidebarW, height: h - topBarH)
     }
 
     /// Save current editor state to the linked history entry (without closing).
