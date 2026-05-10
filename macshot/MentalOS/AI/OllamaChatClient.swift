@@ -29,11 +29,11 @@ enum OllamaChatError: LocalizedError {
 }
 
 /// Streaming chat client for a locally running Ollama server. Defaults to
-/// gemma3:4b (vision-capable). Override via UserDefaults `mentalOSChatModel`
-/// or by passing `model` explicitly.
+/// gemma4:e4b (multimodal: vision + audio + tools). Override via UserDefaults
+/// `mentalOSChatModel` or by passing `model` explicitly.
 ///
 /// Requires Ollama running at http://localhost:11434.
-/// Pull the model first: `ollama pull gemma3:4b`
+/// Pull the model first: `ollama pull gemma4:e4b`
 final class OllamaChatClient {
 
     let model: String
@@ -41,7 +41,7 @@ final class OllamaChatClient {
 
     static var defaultModel: String {
         let stored = UserDefaults.standard.string(forKey: "mentalOSChatModel") ?? ""
-        return stored.isEmpty ? "gemma3:4b" : stored
+        return stored.isEmpty ? "gemma4:e4b" : stored
     }
 
     init(model: String = OllamaChatClient.defaultModel,
