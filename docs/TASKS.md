@@ -1,0 +1,273 @@
+# MentalOS Tasks
+
+Single source of truth for what's in flight, what's blocked, and what's
+done. **Read `docs/AGENT_HANDOFF.md` first** for the protocol — this
+file is just the queue.
+
+Plan reference: `~/.claude/plans/so-far-this-tool-encapsulated-cascade.md`
+
+---
+
+## Active
+
+### TASK-001: Workspace window shell — split view + window controller
+
+- **Status:** Pending
+- **Owner-agent:** —
+- **Created:** 2026-05-10
+- **Last touched:** —
+- **Branch:** feat/task-001-workspace-shell
+- **Files touched:** —
+- **Acceptance criteria:**
+  - [ ] New `macshot/UI/Workspace/WorkspaceWindowController.swift` with restorable 1280×800 window.
+  - [ ] `WorkspaceSplitView.swift` hosts a 3-pane `NSSplitViewController` (sources / chat / notes).
+  - [ ] `AppDelegate` exposes "Window → New Workspace…" menu item with `⌥⌘N`.
+  - [ ] Window opens, panes render placeholder content, divider drag works, frame autosaves.
+  - [ ] `Log.info("workspace opened", category: .workspace, ...)` fires on open.
+  - [ ] Debug + Release builds clean.
+
+#### Progress log
+
+_(none yet)_
+
+---
+
+### TASK-002: WorkspaceSession model + SourceRef + JSON persistence
+
+- **Status:** Pending
+- **Owner-agent:** —
+- **Created:** 2026-05-10
+- **Last touched:** —
+- **Branch:** feat/task-002-workspace-session
+- **Files touched:** —
+- **Acceptance criteria:**
+  - [ ] `macshot/MentalOS/Workspace/WorkspaceSession.swift` Codable model: `id, title, createdAt, sources, notesMarkdown, chatTranscriptID`.
+  - [ ] `SourceRef.swift` enum: `.screenshot(uuid)`, `.pdf(path, sha256)`, `.markdown(path, sha256)`.
+  - [ ] Persistence to `<appSupport>/com.sw33tlie.macshot/workspaces/{uuid}.json`.
+  - [ ] `WorkspaceStore` provides `list()`, `load(id)`, `save(session)`, `delete(id)` with debounced auto-save.
+  - [ ] All disk failures logged via `Log.*`.
+
+#### Progress log
+
+_(none yet)_
+
+---
+
+### TASK-003: Sources pane — drag-and-drop ingestion
+
+- **Status:** Pending
+- **Owner-agent:** —
+- **Created:** 2026-05-10
+- **Last touched:** —
+- **Branch:** feat/task-003-sources-pane
+- **Files touched:** —
+- **Acceptance criteria:**
+  - [ ] Left pane lists sources with thumbnail + title + type icon.
+  - [ ] Drag-and-drop accepts: existing screenshots from `HistoryOverlayController`, files from Finder (PDF, .md, .txt).
+  - [ ] "+" button opens `NSOpenPanel` filtered to allowed types.
+  - [ ] Adding a source updates the WorkspaceSession and triggers Phase-2 ingestion (if registered).
+  - [ ] Right-click row → "Remove from workspace" / "Reveal in Finder".
+
+#### Progress log
+
+_(none yet)_
+
+---
+
+### TASK-004: Chat pane — extract reusable view-model from ChatWindowController
+
+- **Status:** Pending
+- **Owner-agent:** —
+- **Created:** 2026-05-10
+- **Last touched:** —
+- **Branch:** feat/task-004-chat-viewmodel
+- **Files touched:** —
+- **Acceptance criteria:**
+  - [ ] New `ChatPaneViewModel` owns transcript state, streaming, and outbound messages.
+  - [ ] Existing `ChatWindowController` refactored to use the view-model — behaviour unchanged for per-capture window.
+  - [ ] New `ChatPaneView` renders the same UI inside the workspace.
+  - [ ] Initial wiring uses naive context-stuffing of OCR text from sources (Phase-1 stand-in).
+
+#### Progress log
+
+_(none yet)_
+
+---
+
+### TASK-005: Notes pane — generalise NotesSidebarView for WorkspaceSession
+
+- **Status:** Pending
+- **Owner-agent:** —
+- **Created:** 2026-05-10
+- **Last touched:** —
+- **Branch:** feat/task-005-notes-pane
+- **Files touched:** —
+- **Acceptance criteria:**
+  - [ ] `NotesSidebarView` generalised: takes a `NotesBacking` protocol with `read()/write(markdown)/saveDebounced()`.
+  - [ ] Existing per-capture editor uses a `ContextSidecarBacking` impl.
+  - [ ] New `WorkspaceSessionBacking` impl writes to `WorkspaceSession.notesMarkdown`.
+  - [ ] Tags row hidden when backing doesn't support tags (workspace doesn't).
+
+#### Progress log
+
+_(none yet)_
+
+---
+
+### TASK-006: sqlite-vec embedded vector store
+
+- **Status:** Pending
+- **Owner-agent:** —
+- **Created:** 2026-05-10
+- **Last touched:** —
+- **Branch:** feat/task-006-vector-store
+- **Files touched:** —
+- **Acceptance criteria:**
+  - [ ] `sqlite-vec` extension vendored as a Swift package or static lib (no Docker).
+  - [ ] `macshot/MentalOS/RAG/VectorStore.swift` opens `<appSupport>/com.sw33tlie.macshot/mentalos.db`.
+  - [ ] Schema migrations: `chunks(...)` + `vec_chunks USING vec0(embedding FLOAT[768])`.
+  - [ ] API: `upsert(chunk)`, `search(queryVector, k, filter)`, `delete(sourceID)`.
+  - [ ] Migration version table; safe re-runs.
+  - [ ] All db errors logged via `Log.*`.
+
+#### Progress log
+
+_(none yet)_
+
+---
+
+### TASK-007: OllamaEmbeddingProvider + auto-registration
+
+- **Status:** Pending
+- **Owner-agent:** —
+- **Created:** 2026-05-10
+- **Last touched:** —
+- **Branch:** feat/task-007-ollama-embeddings
+- **Files touched:** —
+- **Acceptance criteria:**
+  - [ ] `OllamaEmbeddingProvider` implements `EmbeddingProvider` against Ollama `/api/embeddings`.
+  - [ ] Default model `nomic-embed-text`; configurable via UserDefaults `mentalOSEmbeddingModel`.
+  - [ ] On launch, `AIProviderRegistry` probes Ollama and registers chat + embedding when reachable; logs status.
+  - [ ] Settings "AI" tab gains "Test connection" button that exercises both endpoints and logs results.
+
+#### Progress log
+
+_(none yet)_
+
+---
+
+### TASK-008: Polymorphic Ingestor (screenshot / PDF / markdown)
+
+- **Status:** Pending
+- **Owner-agent:** —
+- **Created:** 2026-05-10
+- **Last touched:** —
+- **Branch:** feat/task-008-ingestor
+- **Files touched:** —
+- **Acceptance criteria:**
+  - [ ] `Ingestor.ingest(SourceRef)` chunks + embeds + upserts into `VectorStore`.
+  - [ ] Screenshot path reuses existing `_ocr.json`, chunks ~500 tokens.
+  - [ ] PDF path uses `PDFKit` text extraction; falls back to Vision OCR per page when no text layer.
+  - [ ] Markdown path splits on headings + paragraph windows.
+  - [ ] `CaptureEnrichmentPipeline` calls `Ingestor.ingest(.screenshot(uuid))` after sidecar writes.
+  - [ ] Idempotent: re-ingesting an unchanged source is a no-op.
+
+#### Progress log
+
+_(none yet)_
+
+---
+
+### TASK-009: Retriever + RAG-augmented workspace chat
+
+- **Status:** Pending
+- **Owner-agent:** —
+- **Created:** 2026-05-10
+- **Last touched:** —
+- **Branch:** feat/task-009-retriever
+- **Files touched:** —
+- **Acceptance criteria:**
+  - [ ] `Retriever.retrieve(query, scope)` returns top-k chunks with citations.
+  - [ ] Scope: `.workspace(id)` or `.global`.
+  - [ ] `ChatPaneViewModel` swaps Phase-1 context-stuffing for retrieval-augmented prompts.
+  - [ ] AI replies include `[S1]…[Sk]` markers; UI renders them as clickable chips that open the source.
+  - [ ] Empty-result path: chat still works, prompt notes "no relevant sources found".
+
+#### Progress log
+
+_(none yet)_
+
+---
+
+### TASK-010: Backfill embeddings for existing history
+
+- **Status:** Pending
+- **Owner-agent:** —
+- **Created:** 2026-05-10
+- **Last touched:** —
+- **Branch:** chore/task-010-backfill-embeddings
+- **Files touched:** —
+- **Acceptance criteria:**
+  - [ ] `scripts/backfill-embeddings.sh` walks every `_context.json`, ingests if not in `chunks`.
+  - [ ] Idempotent and resumable; logs progress to `Log.info` and stdout.
+  - [ ] Settings AI tab exposes a "Run backfill" button that runs in-app on a background queue.
+
+#### Progress log
+
+_(none yet)_
+
+---
+
+## Blocked
+
+### TASK-011: MentalOS web app integration (daily review surface)
+
+- **Status:** Blocked
+- **Owner-agent:** —
+- **Created:** 2026-05-10
+- **Last touched:** —
+- **Branch:** —
+- **Files touched:** —
+- **Blocked on:** User has not yet shared the path/URL of the MentalOS
+  web repo. Once provided, an agent should explore it and append a
+  detailed sub-plan to this task before moving it to Active.
+- **Acceptance criteria:**
+  - [ ] To be defined after web-repo exploration.
+
+#### Progress log
+
+- **2026-05-10** — Created from the planning round. Awaiting repo path
+  from the user.
+
+---
+
+## Done
+
+_(none yet)_
+
+---
+
+## Phase 3 — to be promoted to Active after Phase 2 lands
+
+### TASK-012: Polished markdown export to `~/Documents/MentalOS/Notes/`
+
+- **Status:** Pending
+- **Acceptance criteria (draft):**
+  - [ ] `NoteExporter` takes a `WorkspaceSession`, sends raw notes + transcript + cited chunks to the chat model with a "polish into a publishable markdown note" prompt.
+  - [ ] Output written to `~/Documents/MentalOS/Notes/YYYY-MM-DD <slug>.md` plus `assets/` for images.
+  - [ ] Sandbox handling reuses the symlink dance from `PresentationTree`.
+  - [ ] "Export polished note…" button in workspace toolbar.
+
+### TASK-013: Settings AI tab
+
+- **Status:** Pending
+- **Acceptance criteria (draft):**
+  - [ ] New "AI" tab in `SettingsWindowController`: Ollama URL, chat model, embedding model, "Test connection", "Run backfill", "Open log file".
+  - [ ] All actions logged via `Log.*`.
+
+---
+
+## Future (architecture-only, do not start without explicit go-ahead)
+
+- iOS companion app (Swift). Read-only initially, syncs via iCloud Drive.
+- SaaS multi-user backend (`RemoteVectorStore` impl over Postgres + pgvector + Sign-in-with-Apple).
