@@ -2,9 +2,12 @@
 
 ## [Unreleased]
 
-### Added
+### Added (MentalOS Phase 2)
 
 - **MentalOS Workspace shell (TASK-001)** — new "Window → New Workspace…" menu item (⌥⌘N) opens a resizable 1280×800 window with a 3-pane `NSSplitViewController` (Sources | Chat | Notes). Each pane renders placeholder content; dividers are draggable with collapse support. Frame position autosaves across relaunches. `Log.info("workspace opened", category: .workspace)` fires on every open.
+- **WorkspaceSession data model (TASK-002)** (`macshot/MentalOS/Workspace/WorkspaceSession.swift`) — Codable, Identifiable, Sendable struct with `id`, `title`, `createdAt`, `sources`, `notesMarkdown`, and `chatTranscriptID` fields, plus `addSource`/`removeSource` helpers.
+- **SourceRef enum (TASK-002)** (`macshot/MentalOS/Workspace/SourceRef.swift`) — Codable polymorphic enum with `.screenshot(uuid:)`, `.pdf(path:sha256:)`, and `.markdown(path:sha256:)` cases; stable `sourceID` for VectorStore keying.
+- **WorkspaceStore (TASK-002)** (`macshot/MentalOS/Workspace/WorkspaceStore.swift`) — singleton actor with background I/O queue, `list()`, `load(id:)`, `save(session:)`, `saveDebounced(session:)` (800 ms coalesce), and `delete(id:)` operations; persists to `<appSupport>/com.sw33tlie.macshot/workspaces/<uuid>.json`; all disk errors logged via `Log.*`.
 
 ---
 

@@ -10,27 +10,6 @@ Plan reference: `~/.claude/plans/so-far-this-tool-encapsulated-cascade.md`
 
 ## Active
 
-### TASK-002: WorkspaceSession model + SourceRef + JSON persistence
-
-- **Status:** Pending
-- **Owner-agent:** —
-- **Created:** 2026-05-10
-- **Last touched:** —
-- **Branch:** feat/task-002-workspace-session
-- **Files touched:** —
-- **Acceptance criteria:**
-  - [ ] `macshot/MentalOS/Workspace/WorkspaceSession.swift` Codable model: `id, title, createdAt, sources, notesMarkdown, chatTranscriptID`.
-  - [ ] `SourceRef.swift` enum: `.screenshot(uuid)`, `.pdf(path, sha256)`, `.markdown(path, sha256)`.
-  - [ ] Persistence to `<appSupport>/com.sw33tlie.macshot/workspaces/{uuid}.json`.
-  - [ ] `WorkspaceStore` provides `list()`, `load(id)`, `save(session)`, `delete(id)` with debounced auto-save.
-  - [ ] All disk failures logged via `Log.*`.
-
-#### Progress log
-
-_(none yet)_
-
----
-
 ### TASK-003: Sources pane — drag-and-drop ingestion
 
 - **Status:** Pending
@@ -284,6 +263,35 @@ _(none yet)_
 
 ## Done
 
+### TASK-002: WorkspaceSession model + SourceRef + JSON persistence
+
+- **Status:** Done
+- **Owner-agent:** Claude Sonnet 4.6 — 2026-05-11
+- **Created:** 2026-05-10
+- **Last touched:** 2026-05-11
+- **Branch:** feat/task-002-workspace-session
+- **Files touched:** macshot/MentalOS/Workspace/SourceRef.swift, macshot/MentalOS/Workspace/WorkspaceSession.swift, macshot/MentalOS/Workspace/WorkspaceStore.swift
+- **Acceptance criteria:**
+  - [x] `macshot/MentalOS/Workspace/WorkspaceSession.swift` Codable model: `id, title, createdAt, sources, notesMarkdown, chatTranscriptID`.
+  - [x] `SourceRef.swift` enum: `.screenshot(uuid)`, `.pdf(path, sha256)`, `.markdown(path, sha256)`.
+  - [x] Persistence to `<appSupport>/com.sw33tlie.macshot/workspaces/{uuid}.json`.
+  - [x] `WorkspaceStore` provides `list()`, `load(id)`, `save(session)`, `delete(id)` with debounced auto-save.
+  - [x] All disk failures logged via `Log.*`.
+
+#### Progress log
+
+- **2026-05-11 00:00** — Promoted from Pending. Implemented SourceRef enum (Codable, manual encode/decode for associated values; stable sourceID for VectorStore keying), WorkspaceSession struct (Codable, Identifiable, Sendable; addSource/removeSource helpers), WorkspaceStore singleton (background I/O queue, debounced auto-save at 800ms, all disk errors via Log.*; persists to `<appSupport>/com.sw33tlie.macshot/workspaces/<uuid>.json`). Release build clean — strict concurrency verified. Commit: 795f771.
+
+- **2026-05-11 01:00** — Verified all files present and correct (SourceRef, WorkspaceSession, WorkspaceStore). Release build `** BUILD SUCCEEDED **` — no errors, strict concurrency clean. All acceptance criteria confirmed ticked. Commit: 9025e41.
+
+- **2026-05-11 QA FAIL** — `bash scripts/audit-docs.sh` exited 1 (8 findings). Pre-existing infrastructure issues unrelated to TASK-002: regex bug in audit-docs.sh flagging non-link parentheticals; TASK-012/013 stubs missing required metadata fields. Acceptance-criteria files and Release build verified clean independently.
+
+- **2026-05-11 02:00** — Fixed both audit-docs.sh blockers: (1) regex corrected to `grep -oE '\]\([^)]+\)'`; (2) TASK-012/013 stubs received required metadata fields. `bash scripts/audit-docs.sh` exits 0 — "0 findings". Commit: 6663022.
+
+- **2026-05-11 QA PASS** — All checks passed. (1) `bash scripts/audit-docs.sh` → exit 0, 0 findings. (2) `xcodebuild -scheme macshot -configuration Release build | grep "error:"` → empty. (3) Source files confirmed: `SourceRef.swift` (`.screenshot(uuid)`, `.pdf(path,sha256)`, `.markdown(path,sha256)`), `WorkspaceSession.swift` (Codable struct: `id, title, createdAt, sources, notesMarkdown, chatTranscriptID`), `WorkspaceStore.swift` (`list()`, `load(id)`, `save(session)`, `saveDebounced()`, `delete(id)`; `<appSupport>/com.sw33tlie.macshot/workspaces/<uuid>.json`; all disk errors via `Log.*`). Runtime UI verification not possible in headless context — structural checks pass. Verifying commit: 28ce9cb. **Branch `feat/task-002-workspace-session` awaits user PR merge to `dev`.**
+
+---
+
 ### TASK-001: Workspace window shell — split view + window controller
 
 - **Status:** Done
@@ -304,7 +312,7 @@ _(none yet)_
 
 - **2026-05-10 00:00** — Implemented all acceptance criteria. Created `WorkspaceSplitView` (NSSplitViewController subclass, 3 panes with placeholder VCs), `WorkspaceWindowController` (@MainActor, 1280×800, frame autosave via `setFrameAutosaveName`, Log.info on open, static `activeControllers` for lifetime management). Wired `openNewWorkspace` into AppDelegate `setupMainMenu()` — adds "Window" NSMenu with ⌥⌘N item, set as `NSApp.windowsMenu`. Debug + Release builds clean. Commit: f229774. Branch `feat/task-001-workspace-shell` ready — push blocked by permission prompt in scheduled context; run `git push origin feat/task-001-workspace-shell` manually or approve next tick.
 
-- **2026-05-10 00:00 QA PASS** — All acceptance criteria verified by mentalos-qa agent (commit 74192f9). (1) `WorkspaceWindowController.swift` + `WorkspaceSplitView.swift` present under `macshot/UI/Workspace/`. (2) `NSSplitViewController` with 3 panes + `WorkspacePlaceholderViewController` per pane confirmed in source. (3) AppDelegate:329 — NSMenuItem "New Workspace…" with `.command + .option + n`. (4) Placeholder content wired; `canCollapse + minimumThickness` for divider; `setFrameAutosaveName` for autosave — runtime UI not verifiable in headless context but structural checks pass. (5) `Log.info("workspace opened", category: .workspace, ...)` at `WorkspaceWindowController.swift:66`; `Log.Category.workspace` in `Log.swift:24`. (6) Release build `** BUILD SUCCEEDED **`; `grep "error:"` returned empty. Pre-existing `audit-docs.sh` findings (8) all present on `dev` before TASK-001 and not introduced by this task.
+- **2026-05-10 00:00 QA PASS** — All acceptance criteria verified by mentalos-qa agent (commit 74192f9). (1) `WorkspaceWindowController.swift` + `WorkspaceSplitView.swift` present under `macshot/UI/Workspace/`. (2) `NSSplitViewController` with 3 panes + `WorkspacePlaceholderViewController` per pane confirmed in source. (3) AppDelegate:329 — NSMenuItem "New Workspace…" with `.command + .option + n`. (4) Placeholder content wired; `canCollapse + minimumThickness` for divider; `setFrameAutosaveName` for autosave — runtime UI not verifiable in headless context but structural checks pass. (5) `Log.info("workspace opened", category: .workspace, ...)` at `WorkspaceWindowController.swift:66`; `Log.Category.workspace` in `Log.swift:24`. (6) Release build `** BUILD SUCCEEDED **`; `grep "error:"` returned empty. Pre-existing `audit-docs.sh` findings (8) all present on `dev` before TASK-001 and not introduced by this task. **Branch `feat/task-001-workspace-shell` awaits user PR merge to `dev`.**
 
 ---
 
@@ -315,6 +323,10 @@ _(none yet)_
 ### TASK-012: Polished markdown export to `~/Documents/MentalOS/Notes/`
 
 - **Status:** Pending
+- **Owner-agent:** —
+- **Created:** 2026-05-10
+- **Last touched:** —
+- **Branch:** feat/task-012-note-export
 - **Acceptance criteria (draft):**
   - [ ] `NoteExporter` takes a `WorkspaceSession`, sends raw notes + transcript + cited chunks to the chat model with a "polish into a publishable markdown note" prompt.
   - [ ] Output written to `~/Documents/MentalOS/Notes/YYYY-MM-DD <slug>.md` plus `assets/` for images.
@@ -324,6 +336,10 @@ _(none yet)_
 ### TASK-013: Settings AI tab
 
 - **Status:** Pending
+- **Owner-agent:** —
+- **Created:** 2026-05-10
+- **Last touched:** —
+- **Branch:** feat/task-013-settings-ai-tab
 - **Acceptance criteria (draft):**
   - [ ] New "AI" tab in `SettingsWindowController`: Ollama URL, chat model, embedding model, "Test connection", "Run backfill", "Open log file".
   - [ ] All actions logged via `Log.*`.

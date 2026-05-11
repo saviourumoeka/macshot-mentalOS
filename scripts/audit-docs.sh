@@ -44,8 +44,9 @@ grep -nHE '\[[^]]+\]\(([^)]+)\)' "${DOCS[@]}" 2>/dev/null \
       file="${line%%:*}"
       rest="${line#*:}"
       lineno="${rest%%:*}"
-      # Extract every (path) occurrence on this line.
-      printf '%s\n' "$rest" | grep -oE '\([^)]+\)' | while read -r paren; do
+      # Extract only markdown link targets ](path) — not arbitrary parentheticals.
+      printf '%s\n' "$rest" | grep -oE '\]\([^)]+\)' | while read -r raw; do
+        paren="${raw#]}"
         path="${paren#(}"
         path="${path%)}"
         # Strip optional title: "path "title"" → "path"
