@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Added (MentalOS Phase 2)
+
+- **WorkspaceSession data model** (`macshot/MentalOS/Workspace/WorkspaceSession.swift`) — Codable, Identifiable, Sendable struct with `id`, `title`, `createdAt`, `sources`, `notesMarkdown`, and `chatTranscriptID` fields, plus `addSource`/`removeSource` helpers.
+- **SourceRef enum** (`macshot/MentalOS/Workspace/SourceRef.swift`) — Codable polymorphic enum with `.screenshot(uuid:)`, `.pdf(path:sha256:)`, and `.markdown(path:sha256:)` cases; stable `sourceID` for VectorStore keying.
+- **WorkspaceStore** (`macshot/MentalOS/Workspace/WorkspaceStore.swift`) — singleton actor with background I/O queue, `list()`, `load(id:)`, `save(session:)`, `saveDebounced(session:)` (800 ms coalesce), and `delete(id:)` operations; persists to `<appSupport>/com.sw33tlie.macshot/workspaces/<uuid>.json`; all disk errors logged via `Log.*`.
+
+---
+
 ## [4.1.0] - 2026-05-08
 
 The big release in 4.1.0 is a full **video editor effects suite**: zoom, censor, cut, speed, freeze, and text segments rendered through a custom Core Image compositor. Recording quality, color reproduction across external monitors, and capture-flow ergonomics also got significant attention.
