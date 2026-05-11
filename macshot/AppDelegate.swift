@@ -323,7 +323,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
         appMenu.addItem(withTitle: "Quit macshot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appMenuItem.submenu = appMenu
 
+        let windowMenuItem = NSMenuItem()
+        mainMenu.addItem(windowMenuItem)
+        let windowMenu = NSMenu(title: "Window")
+        let workspaceItem = NSMenuItem(title: "New Workspace…", action: #selector(openNewWorkspace), keyEquivalent: "n")
+        workspaceItem.keyEquivalentModifierMask = [.command, .option]
+        workspaceItem.target = self
+        windowMenu.addItem(workspaceItem)
+        windowMenuItem.submenu = windowMenu
+
         NSApp.mainMenu = mainMenu
+        NSApp.windowsMenu = windowMenu
+    }
+
+    @objc private func openNewWorkspace() {
+        WorkspaceWindowController.open()
     }
 
     // MARK: - Status Bar
