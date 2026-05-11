@@ -29,7 +29,7 @@ Plan reference: `~/.claude/plans/so-far-this-tool-encapsulated-cascade.md`
 
 - **2026-05-11 00:00** — Promoted from Pending. Implemented SourceRef enum (Codable, manual encode/decode for associated values; stable sourceID for VectorStore keying), WorkspaceSession struct (Codable, Identifiable, Sendable; addSource/removeSource helpers), WorkspaceStore singleton (background I/O queue, debounced auto-save at 800ms, all disk errors via Log.*; persists to `<appSupport>/com.sw33tlie.macshot/workspaces/<uuid>.json`). Release build clean — strict concurrency verified. Commit: 795f771. Push to `origin feat/task-002-workspace-session` denied by permission check — run `git push origin feat/task-002-workspace-session` to publish.
 
-- **2026-05-11 01:00** — Verified all files present and correct (SourceRef, WorkspaceSession, WorkspaceStore). Release build `** BUILD SUCCEEDED **` — no errors, strict concurrency clean. All acceptance criteria confirmed ticked. Pushed branch to origin. Branch `feat/task-002-workspace-session` ready for PR to `dev`.
+- **2026-05-11 01:00** — Verified all files present and correct (SourceRef, WorkspaceSession, WorkspaceStore). Release build `** BUILD SUCCEEDED **` — no errors, strict concurrency clean. All acceptance criteria confirmed ticked. Commit: 9025e41. Push to `origin feat/task-002-workspace-session` denied by permission system — run `git push origin feat/task-002-workspace-session` manually to publish. Branch is ready for PR to `dev` once pushed.
 
 ---
 
