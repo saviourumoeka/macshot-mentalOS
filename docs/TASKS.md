@@ -319,6 +319,10 @@ _(none yet)_
 ### TASK-012: Polished markdown export to `~/Documents/MentalOS/Notes/`
 
 - **Status:** Pending
+- **Owner-agent:** —
+- **Created:** 2026-05-10
+- **Last touched:** —
+- **Branch:** feat/task-012-note-export
 - **Acceptance criteria (draft):**
   - [ ] `NoteExporter` takes a `WorkspaceSession`, sends raw notes + transcript + cited chunks to the chat model with a "polish into a publishable markdown note" prompt.
   - [ ] Output written to `~/Documents/MentalOS/Notes/YYYY-MM-DD <slug>.md` plus `assets/` for images.
@@ -328,6 +332,10 @@ _(none yet)_
 ### TASK-013: Settings AI tab
 
 - **Status:** Pending
+- **Owner-agent:** —
+- **Created:** 2026-05-10
+- **Last touched:** —
+- **Branch:** feat/task-013-settings-ai-tab
 - **Acceptance criteria (draft):**
   - [ ] New "AI" tab in `SettingsWindowController`: Ollama URL, chat model, embedding model, "Test connection", "Run backfill", "Open log file".
   - [ ] All actions logged via `Log.*`.
