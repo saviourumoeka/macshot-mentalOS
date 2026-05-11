@@ -101,13 +101,30 @@ done
 section "TASKS.md structural sanity"
 TASKS=docs/TASKS.md
 if [[ -f "$TASKS" ]]; then
-  # Every task block should have these fields.
+  # Every task block should have these fields — but only enforce on
+  # blocks in the Active / Blocked / Done sections. Phase 3 and Future
+  # sections are explicit draft stubs (see TASKS.md headers
+  # "## Phase 3 — to be promoted ..." and "## Future ..."); enforcing
+  # required PM fields on them contradicts their stated purpose.
   required_fields=("Status:" "Owner-agent:" "Created:" "Last touched:" "Branch:")
-  task_ids=$(grep -oE 'TASK-[0-9]+' "$TASKS" | sort -u)
-  for tid in $task_ids; do
+  enforced_task_ids=$(awk '
+    /^## / {
+      section = $0
+      sub(/^## /, "", section)
+      enforce = (section ~ /^Active/ || section ~ /^Blocked/ || section ~ /^Done/)
+      next
+    }
+    enforce && /^### TASK-/ {
+      # Print just the TASK-NNN id.
+      match($0, /TASK-[0-9]+/)
+      if (RSTART > 0) print substr($0, RSTART, RLENGTH)
+    }
+  ' "$TASKS" | sort -u)
+  for tid in $enforced_task_ids; do
     block=$(awk -v id="### $tid" '
       $0 ~ id { capture=1; print; next }
       capture && /^### TASK-/ { exit }
+      capture && /^## / { exit }
       capture { print }
     ' "$TASKS")
     if [[ -z "$block" ]]; then continue; fi
