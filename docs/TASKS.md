@@ -31,6 +31,8 @@ Plan reference: `~/.claude/plans/so-far-this-tool-encapsulated-cascade.md`
 
 - **2026-05-11 01:00** — Verified all files present and correct (SourceRef, WorkspaceSession, WorkspaceStore). Release build `** BUILD SUCCEEDED **` — no errors, strict concurrency clean. All acceptance criteria confirmed ticked. Commit: 9025e41. Push to `origin feat/task-002-workspace-session` denied by permission system — run `git push origin feat/task-002-workspace-session` manually to publish. Branch is ready for PR to `dev` once pushed.
 
+- **2026-05-11 QA FAIL** — `bash scripts/audit-docs.sh` exited 1 (8 findings). All findings are pre-existing infrastructure issues unrelated to TASK-002's implementation: (1) `CHANGELOG.md:1173` has a broken relative link to `libwebp` (pre-existed before TASK-001); (2) TASK-012 and TASK-013 draft blocks in the "Phase 3" section are missing `Owner-agent:`, `Created:`, `Last touched:`, `Branch:` fields (these are planning stubs, never Active). TASK-002's own acceptance-criteria implementation verified independently: `SourceRef.swift`, `WorkspaceSession.swift`, `WorkspaceStore.swift` all present and correct; `xcodebuild -scheme macshot -configuration Release build` → `** BUILD SUCCEEDED **`, zero `error:` lines. UI/runtime verification not possible in headless context. **Blocking issue:** pre-existing audit failures must be resolved before audit-docs.sh can exit 0. Remediation needed: (a) add required fields to TASK-012/013 draft blocks or update audit-docs.sh to skip the "Phase 3" section; (b) fix or remove the broken `libwebp` link in CHANGELOG.md. TASK-002 acceptance-criteria checkboxes left ticked — the failure is in shared infrastructure, not in this task's deliverables.
+
 ---
 
 ### TASK-003: Sources pane — drag-and-drop ingestion
